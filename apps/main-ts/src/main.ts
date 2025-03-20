@@ -23,6 +23,18 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   </div>
 `
 
+// 工具栏宽度管理
+const MIN_WIDTH = 50;
+const MAX_WIDTH = 600;
+const DEFAULT_WIDTH = 200;
+
+function setToolbarWidth(width: number, toolbar: HTMLElement) {
+  // 确保宽度在有效范围内
+  const validWidth = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
+  toolbar.style.width = `${validWidth}px`;
+  return validWidth;
+}
+
 // 添加分隔条拖动功能
 const resizer = document.querySelector('.resizer') as HTMLElement;
 const toolbar = document.querySelector('.toolbar') as HTMLElement;
@@ -52,7 +64,7 @@ function handleMouseMove(e: MouseEvent) {
   
   const width = startWidth + (e.clientX - startX);
   // 设置最小和最大宽度
-  if (width >= 50 && width <= 600) {
+  if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
     tempWidth = width;
     // 更新指示线位置
     resizer.style.setProperty('--indicator-left', `${width}px`);
@@ -66,7 +78,7 @@ function handleMouseUp() {
   resizer.classList.remove('dragging');
   
   // 更新实际宽度
-  toolbar.style.width = `${tempWidth}px`;
+  setToolbarWidth(tempWidth, toolbar);
   
   isResizing = false;
   // 移除临时事件监听器
@@ -76,11 +88,13 @@ function handleMouseUp() {
 
 // 添加工具栏展开/缩小功能
 const toggleToolbar = () => {
-  const toolbar = document.querySelector('.toolbar');
+  const toolbar = document.querySelector('.toolbar') as HTMLElement;
   const toggleIcon = document.querySelector('.toggle-icon');
   if (toolbar && toggleIcon) {
-    toolbar.classList.toggle('collapsed');
-    toggleIcon.textContent = toolbar.classList.contains('collapsed') ? '▶' : '◀';
+    const isCollapsed = toolbar.classList.toggle('collapsed');
+    toggleIcon.textContent = isCollapsed ? '▶' : '◀';
+    // 根据状态设置宽度
+    setToolbarWidth(isCollapsed ? MIN_WIDTH : DEFAULT_WIDTH, toolbar);
   }
 };
 
