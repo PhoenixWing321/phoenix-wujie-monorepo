@@ -22,7 +22,7 @@ pnpm build
 ```json
 {
   "dependencies": {
-    "@microfrontend-monorepo/image-wasm": "workspace:*"
+    "@phoenix-wujie-monorepo/image-wasm": "workspace:*"
   }
 }
 ```

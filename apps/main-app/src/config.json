@@ -1,0 +1,22 @@
+{
+  "apps": [
+    {
+      "name": "counter-app",
+      "url": "//localhost:8311",
+      "el": "#counter-app",
+      "alive": true,
+      "props": {
+        "message": "hello from main app"
+      }
+    },
+    {
+      "name": "image-app",
+      "url": "//localhost:8312",
+      "el": "#image-app",
+      "alive": true,
+      "props": {
+        "message": "hello"
+      }
+    }
+  ]
+} 

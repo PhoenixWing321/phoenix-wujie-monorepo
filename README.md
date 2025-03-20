@@ -1,5 +1,4 @@
-使用 `wujie` 微前端框架和 `pnpm` 的 Monorepo 架构来建立一个主应用并集成子应用（计数器应用和图片显示应用），可以按照以下步骤进行：
-
+# phoenix-wujie-monorepo
 ---
 
 ### 1. 初始化 Monorepo 项目
@@ -12,8 +11,8 @@
 
 2. **创建项目目录**：
    ```bash
-   mkdir wujie-monorepo
-   cd wujie-monorepo
+   mkdir phoenix-wujie-monorepo
+   cd phoenix-wujie-monorepo
    ```
 
 3. **初始化 `pnpm` 工作区**：
@@ -31,227 +30,15 @@
 
 ---
 
-### 2. 创建子应用
+### 2. 创建应用
 
-#### 2.1 创建计数器子应用
-1. **创建子应用目录**：
-   ```bash
-   mkdir -p packages/counter-app
-   cd packages/counter-app
-   ```
+- 创建计数器子应用
+- 创建图片显示子应用
+- 创建主应用
 
-2. **初始化 Vue 3 + TypeScript + Vite 项目**：
-   运行以下命令：
-   ```bash
-   pnpm create vite@latest . --template vue-ts
-   ```
-
-3. **安装依赖**：
-   ```bash
-   pnpm install
-   ```
-
-4. **修改 `src/App.vue`**：
-   实现一个简单的计数器：
-   ```vue
-   <template>
-     <div>
-       <h1>计数器应用</h1>
-       <p>当前计数: {{ count }}</p>
-       <button @click="increment">增加</button>
-       <button @click="decrement">减少</button>
-     </div>
-   </template>
-
-   <script lang="ts">
-   import { ref } from 'vue';
-
-   export default {
-     setup() {
-       const count = ref(0);
-
-       const increment = () => {
-         count.value++;
-       };
-
-       const decrement = () => {
-         count.value--;
-       };
-
-       return {
-         count,
-         increment,
-         decrement,
-       };
-     },
-   };
-   </script>
-   ```
-
-5. **运行计数器子应用**：
-   ```bash
-   pnpm run dev
-   ```
-
----
-
-#### 2.2 创建图片显示子应用
-1. **创建子应用目录**：
-   ```bash
-   cd ../..
-   mkdir -p packages/image-app
-   cd packages/image-app
-   ```
-
-2. **初始化 Vue 3 + TypeScript + Vite 项目**：
-   运行以下命令：
-   ```bash
-   pnpm create vite@latest . --template vue-ts
-   ```
-
-3. **安装依赖**：
-   ```bash
-   pnpm install
-   ```
-
-4. **修改 `src/App.vue`**：
-   实现图片上传和显示功能：
-   ```vue
-   <template>
-     <div>
-       <h1>图片显示应用</h1>
-       <input type="file" @change="handleFileUpload" accept="image/*" />
-       <div v-if="imageUrl">
-         <h2>上传的图片：</h2>
-         <img :src="imageUrl" alt="Uploaded Image" style="max-width: 100%;" />
-       </div>
-     </div>
-   </template>
-
-   <script lang="ts">
-   import { ref } from 'vue';
-
-   export default {
-     setup() {
-       const imageUrl = ref<string | null>(null);
-
-       const handleFileUpload = (event: Event) => {
-         const target = event.target as HTMLInputElement;
-         const file = target.files?.[0];
-         if (file) {
-           imageUrl.value = URL.createObjectURL(file);
-         }
-       };
-
-       return {
-         imageUrl,
-         handleFileUpload,
-       };
-     },
-   };
-   </script>
-   ```
-
-5. **运行图片显示子应用**：
-   ```bash
-   pnpm run dev
-   ```
-
----
-
-### 3. 创建主应用
-
-1. **创建主应用目录**：
-   ```bash
-   cd ../..
-   mkdir -p packages/main-app
-   cd packages/main-app
-   ```
-
-2. **初始化 Vue 3 + TypeScript + Vite 项目**：
-   运行以下命令：
-   ```bash
-   pnpm create vite@latest . --template vue-ts
-   ```
-
-3. **安装依赖**：
-   ```bash
-   pnpm install
-   ```
-
-4. **安装 `wujie`**：
-   ```bash
-   pnpm add wujie -w
-   ```
-
-5. **修改 `src/main.ts`**：
-   配置 `wujie` 微前端：
-   ```typescript
-   import { createApp } from 'vue';
-   import App from './App.vue';
-   import { setupApp } from 'wujie';
-
-   const app = createApp(App);
-
-   // 配置子应用
-   setupApp({
-     name: 'counter-app',
-     url: '//localhost:5173',
-     el: '#counter-app',
-   });
-
-   setupApp({
-     name: 'image-app',
-     url: '//localhost:5174',
-     el: '#image-app',
-   });
-
-   app.mount('#app');
-   ```
-
-6. **修改 `src/App.vue`**：
-   实现主应用的布局和路由：
-   ```vue
-   <template>
-     <div>
-       <h1>主应用</h1>
-       <nav>
-         <button @click="loadCounterApp">加载计数器应用</button>
-         <button @click="loadImageApp">加载图片显示应用</button>
-       </nav>
-       <div id="counter-app"></div>
-       <div id="image-app"></div>
-     </div>
-   </template>
-
-   <script lang="ts">
-   import { defineComponent } from 'vue';
-   import { startApp } from 'wujie';
-
-   export default defineComponent({
-     methods: {
-       loadCounterApp() {
-         startApp({ name: 'counter-app' });
-       },
-       loadImageApp() {
-         startApp({ name: 'image-app' });
-       },
-     },
-   });
-   </script>
-   ```
-
-7. **运行主应用**：
-   ```bash
-   pnpm run dev
-   ```
-
----
-
-### 4. 项目结构
 最终的项目结构如下：
 ```
-microfrontend-monorepo/
+phoenix-wujie-monorepo/
 ├── apps/                    # 应用目录
 │   ├── counter-app/        # 计数器应用
 │   ├── image-app/         # 图片处理应用
@@ -268,28 +55,110 @@ microfrontend-monorepo/
 ---
 
 ### 5. 运行项目
+ 
+```bash
+# 在 main-app 目录下
+pnpm dev    # 将在 8310 端口启动
 
-1. **运行计数器子应用**：
-   ```bash
-   cd packages/counter-app
-   pnpm run dev
-   ```
+# 在 counter-app 目录下
+pnpm dev    # 将在 8311 端口启动
 
-2. **运行图片显示子应用**：
-   ```bash
-   cd ../image-app
-   pnpm run dev
-   ```
+# 在 image-app 目录下
+pnpm dev    # 将在 8312 端口启动
+```
 
-3. **运行主应用**：
-   ```bash
-   cd ../main-app
-   pnpm run dev
-   ```
+- **访问主应用**：
+   打开浏览器访问 `http://localhost:8310`，点击按钮加载子应用。
 
-4. **访问主应用**：
-   打开浏览器访问 `http://localhost:5175`，点击按钮加载子应用。
+- 一键启动：
 
----
+`pnpm apps`
+- 一键安装：
 
-通过以上步骤，你可以成功使用 `wujie` 微前端框架和 `pnpm` 的 Monorepo 架构建立一个主应用，并集成两个子应用（计数器应用和图片显示应用）。
+`pnpm installAll`
+
+
+# 启动原理
+
+本项目使用 wujie 微前端框架来管理子应用。启动过程分为两个主要阶段：
+
+### 1. 预配置阶段 (setupApp)
+
+在 `main-app/src/main.ts` 中，通过 `setupApp` 预先注册所有子应用的基本配置：
+
+```typescript
+// 预注册所有子应用的基本配置
+config.apps.forEach(appConfig => {
+  setupApp({
+    name: appConfig.name,  // 子应用标识
+    url: appConfig.url,    // 子应用访问地址
+    el: appConfig.el,      // 子应用挂载点
+  });
+});
+```
+
+这个阶段：
+- 在主应用启动时就执行
+- 只是注册配置，不会实际加载应用
+- 相当于"注册表"，告诉主应用有哪些子应用可用
+
+### 2. 实际加载阶段 (startApp)
+
+在 `main-app/src/App.vue` 中，通过 `startApp` 实现子应用的实际加载：
+
+```typescript
+startApp({
+  ...appConfig,           // 使用预配置的基本信息
+  url: appConfig.url,     // 子应用地址
+  beforeLoad: () => {},   // 加载前钩子
+  afterMount: () => {},   // 挂载后钩子
+  props: {}              // 传递给子应用的数据
+});
+```
+
+这个阶段：
+- 在用户点击按钮时才执行
+- 真正加载和渲染子应用
+- 可以使用 setupApp 中的基本配置
+- 可以添加更多运行时配置（props、生命周期钩子等）
+
+### 3. 配置管理
+
+所有子应用的配置统一在 `main-app/src/config.json` 中管理：
+
+```json
+{
+  "apps": [
+    {
+      "name": "counter-app",
+      "url": "//localhost:8311",
+      "el": "#counter-app",
+      "alive": true,
+      "props": {
+        "message": "hello from main app"
+      }
+    },
+    // ... 其他子应用配置
+  ]
+}
+```
+
+这种设计的优势：
+1. 分离配置和运行时逻辑，便于维护
+2. 可以预先注册所有可能用到的子应用
+3. 按需加载子应用，提高性能
+4. 运行时可以传入更多配置，更灵活
+
+### 4. 启动顺序
+
+1. 主应用启动（8310端口）
+2. 子应用独立启动：
+   - counter-app（8311端口）
+   - image-app（8312端口）
+3. 用户通过主应用界面控制子应用的加载和卸载
+
+可以通过以下命令一键启动所有应用：
+```bash
+pnpm apps
+```
+
