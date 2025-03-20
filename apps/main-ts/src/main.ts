@@ -3,22 +3,76 @@ import './style.css'
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="app-container">
     <div class="toolbar">
-      <div class="toolbar-header">
-        <h2>工具栏</h2>
-        <button id="toggleToolbar" class="toggle-button">
-          <span class="toggle-icon">◀</span>
-        </button>
-      </div>
-      <div class="tool-buttons">
-        <button id="addWindow" class="tool-button">添加窗口</button>
-        <button id="clearWindows" class="tool-button">清除所有</button>
+      <div class="toolbar-inner">
+        <div class="toolbar-header">
+          <h2>工具栏</h2>
+          <button id="toggleToolbar" class="toggle-button">
+            <span class="toggle-icon">◀</span>
+          </button>
+        </div>
+        <div class="tool-buttons">
+          <button id="addWindow" class="tool-button">添加窗口</button>
+          <button id="clearWindows" class="tool-button">清除所有</button>
+        </div>
       </div>
     </div>
+    <div class="resizer"></div>
     <div class="windows-container" id="windowsContainer">
       <!-- 子窗口将在这里动态添加 -->
     </div>
   </div>
 `
+
+// 添加分隔条拖动功能
+const resizer = document.querySelector('.resizer') as HTMLElement;
+const toolbar = document.querySelector('.toolbar') as HTMLElement;
+let isResizing = false;
+let startX: number;
+let startWidth: number;
+let tempWidth: number;
+
+if (resizer && toolbar) {
+  resizer.addEventListener('mousedown', (e: MouseEvent) => {
+    isResizing = true;
+    startX = e.clientX;
+    startWidth = toolbar.clientWidth;
+    tempWidth = startWidth;
+    
+    // 添加拖动状态
+    resizer.classList.add('dragging');
+    
+    // 添加临时事件监听器
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  });
+}
+
+function handleMouseMove(e: MouseEvent) {
+  if (!isResizing || !resizer) return;
+  
+  const width = startWidth + (e.clientX - startX);
+  // 设置最小和最大宽度
+  if (width >= 50 && width <= 600) {
+    tempWidth = width;
+    // 更新指示线位置
+    resizer.style.setProperty('--indicator-left', `${width}px`);
+  }
+}
+
+function handleMouseUp() {
+  if (!isResizing || !toolbar || !resizer) return;
+  
+  // 移除拖动状态
+  resizer.classList.remove('dragging');
+  
+  // 更新实际宽度
+  toolbar.style.width = `${tempWidth}px`;
+  
+  isResizing = false;
+  // 移除临时事件监听器
+  document.removeEventListener('mousemove', handleMouseMove);
+  document.removeEventListener('mouseup', handleMouseUp);
+}
 
 // 添加工具栏展开/缩小功能
 const toggleToolbar = () => {
@@ -63,10 +117,14 @@ const addWindow = () => {
       isDragging = true;
       initialX = e.clientX - window.offsetLeft;
       initialY = e.clientY - window.offsetTop;
+      
+      // 添加临时事件监听器
+      document.addEventListener('mousemove', handleWindowMouseMove);
+      document.addEventListener('mouseup', handleWindowMouseUp);
     });
   }
 
-  document.addEventListener('mousemove', (e: MouseEvent) => {
+  function handleWindowMouseMove(e: MouseEvent) {
     if (!isDragging) return;
     
     e.preventDefault();
@@ -75,11 +133,14 @@ const addWindow = () => {
     
     window.style.left = `${currentX}px`;
     window.style.top = `${currentY}px`;
-  });
+  }
 
-  document.addEventListener('mouseup', () => {
+  function handleWindowMouseUp() {
     isDragging = false;
-  });
+    // 移除临时事件监听器
+    document.removeEventListener('mousemove', handleWindowMouseMove);
+    document.removeEventListener('mouseup', handleWindowMouseUp);
+  }
 
   // 添加关闭按钮功能
   const closeButton = window.querySelector('.close-button');
