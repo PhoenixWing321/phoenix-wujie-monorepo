@@ -1,17 +1,20 @@
 {
   "name": "microfrontend-monorepo",
+  "private": true,
   "version": "1.0.0",
-  "description": "",
-  "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "build": "pnpm -r build",
+    "dev": "pnpm -r dev",
+    "test": "pnpm -r test"
   },
-  "keywords": [],
-  "author": "",
-  "license": "ISC",
-  "packageManager": "pnpm@10.6.3",
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "devDependencies": {
+    "typescript": "^4.9.5"
+  },
   "dependencies": {
-    "vue": "^3.5.13",
     "wujie": "^1.0.25"
   }
 }

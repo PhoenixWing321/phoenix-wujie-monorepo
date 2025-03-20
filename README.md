@@ -251,26 +251,15 @@
 ### 4. 项目结构
 最终的项目结构如下：
 ```
-wujie-monorepo/
-├── packages/
-│   ├── counter-app/
-│   │   ├── src/
-│   │   │   ├── App.vue
-│   │   │   └── main.ts
-│   │   ├── package.json
-│   │   └── vite.config.ts
-│   ├── image-app/
-│   │   ├── src/
-│   │   │   ├── App.vue
-│   │   │   └── main.ts
-│   │   ├── package.json
-│   │   └── vite.config.ts
-│   ├── main-app/
-│   │   ├── src/
-│   │   │   ├── App.vue
-│   │   │   └── main.ts
-│   │   ├── package.json
-│   │   └── vite.config.ts
+microfrontend-monorepo/
+├── apps/                    # 应用目录
+│   ├── counter-app/        # 计数器应用
+│   ├── image-app/         # 图片处理应用
+│   └── main-app/          # 主应用
+│
+├── packages/               # 共享包目录
+│   ├── image-wasm/        # WASM 图片处理库
+│   └── ui/                # 共享 UI 组件库
 ├── pnpm-workspace.yaml
 ├── package.json
 └── pnpm-lock.yaml
