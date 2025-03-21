@@ -1,211 +1,31 @@
-:root {
-  font-family: Inter, system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
-
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
-
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+/* 基础样式 */
+* {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
 }
 
 body {
-  margin: 0;
-  min-width: 320px;
-  min-height: 100vh;
-  background-color: #f0f0f0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  line-height: 1.5;
+  color: #333;
+  background-color: #f5f5f5;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
-}
-
-#app {
-  /* max-width: 1280px; */
-  margin: 0 auto;
-  padding: 0;
-  text-align: center;
-}
-
-.logo {
-  height: 6em;
-  padding: 1.5em;
-  will-change: filter;
-  transition: filter 300ms;
-}
-.logo:hover {
-  filter: drop-shadow(0 0 2em #646cffaa);
-}
-.logo.vanilla:hover {
-  filter: drop-shadow(0 0 2em #3178c6aa);
-}
-
-.card {
-  padding: 2em;
-}
-
-.read-the-docs {
-  color: #888;
-}
-
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
-}
-
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
-}
-
+/* 应用容器 */
 .app-container {
-  width: 100%;
-  height: 100vh;
   display: flex;
-  flex-direction: row;
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  height: 100vh;
+  overflow: hidden;
 }
 
+/* 工具栏样式 */
 .toolbar {
   width: 200px;
   background-color: #fff;
-  display: flex;
-  flex-direction: column;
+  border-right: 1px solid #ddd;
   transition: none;
-  min-width: 50px;
-  max-width: 600px;
-  box-shadow: 2px 0 4px rgba(0, 0, 0, 0.1);
-}
-
-.toolbar-inner {
-  padding: 1rem;
-  display: flex;
-  flex-direction: column;
-  gap: 1rem;
-  height: 100%;
-}
-
-.resizer {
-  width: 5px;
-  background-color: #e0e0e0;
-  cursor: col-resize;
-  transition: background-color 0.3s;
-  position: relative;
-  z-index: 100;
-}
-
-.resizer:hover {
-  background-color: #2196F3;
-}
-
-.resizer:active {
-  background-color: #1976D2;
-}
-
-/* 临时拖动条样式 */
-.resizer::after {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
-  background-color: #2196F3;
-  opacity: 0;
-  transition: opacity 0.3s;
-  pointer-events: none;
-}
-
-.resizer.dragging::after {
-  opacity: 1;
-}
-
-/* 拖动时的临时指示线 */
-.resizer.dragging::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  bottom: 0;
-  width: 3px;
-  background-color: #2196F3;
-  pointer-events: none;
-  z-index: 1000;
-  opacity: 0;
-  transition: opacity 0.3s;
-  left: var(--indicator-left, 0);
-  box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
-  border-radius: 2px;
-}
-
-/* 拖动时的遮罩层 */
-.resizer.dragging::after {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background-color: rgba(0, 0, 0, 0.1);
-  pointer-events: none;
-  z-index: 999;
-  opacity: 0;
-  transition: opacity 0.3s;
-}
-
-.resizer.dragging::before,
-.resizer.dragging::after {
-  opacity: 1;
-}
-
-/* 拖动时的鼠标样式 */
-.resizer.dragging {
-  cursor: col-resize;
-  user-select: none;  /* 防止拖动时选中文本 */
-}
-
-/* 拖动时禁用其他元素的交互 */
-.resizer.dragging ~ * {
-  pointer-events: none;
+  overflow: hidden;
 }
 
 .toolbar.collapsed {
@@ -214,11 +34,17 @@ button:focus-visible {
 
 .toolbar.collapsed .toolbar-inner {
   padding: 1rem 0.5rem;
+  transition: padding 0.3s ease;
 }
 
 .toolbar.collapsed .toolbar-header h2,
 .toolbar.collapsed .tool-buttons {
   display: none;
+}
+
+.toolbar-inner {
+  padding: 1rem;
+  transition: padding 0.3s ease;
 }
 
 .toolbar-header {
@@ -228,26 +54,25 @@ button:focus-visible {
   margin-bottom: 1rem;
 }
 
-.toolbar h2 {
+.toolbar-header h2 {
+  font-size: 1.2rem;
   margin: 0;
-  color: #333;
-  text-align: left;
   white-space: nowrap;
 }
 
 .toggle-button {
   background: none;
   border: none;
-  padding: 0.5rem;
   cursor: pointer;
+  padding: 0.5rem;
   color: #666;
-  transition: color 0.3s;
   display: flex;
   align-items: center;
   justify-content: center;
   width: 24px;
   height: 24px;
   border-radius: 50%;
+  transition: background-color 0.3s;
 }
 
 .toggle-button:hover {
@@ -268,72 +93,18 @@ button:focus-visible {
   display: flex;
   flex-direction: column;
   gap: 0.5rem;
-  transition: opacity 0.3s;
 }
 
 .tool-button {
-  width: 100%;
-  padding: 0.5rem 1rem;
-  border: none;
+  padding: 0.5rem;
+  border: 1px solid #ddd;
   border-radius: 4px;
-  background-color: #4CAF50;
-  color: white;
+  background-color: #fff;
   cursor: pointer;
-  transition: background-color 0.3s;
   text-align: left;
   white-space: nowrap;
 }
 
 .tool-button:hover {
-  background-color: #45a049;
-}
-
-.windows-container {
-  flex: 1;
-  position: relative;
-  overflow: hidden;
-  background-color: #f5f5f5;
-  padding: 1rem;
-}
-
-.window {
-  position: absolute;
-  width: 300px;
-  background-color: white;
-  border-radius: 8px;
-  box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-  z-index: 1;
-}
-
-.window-header {
-  background-color: #2196F3;
-  color: white;
-  padding: 0.5rem 1rem;
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  cursor: move;
-}
-
-.window-header span {
-  font-weight: 500;
-}
-
-.close-button {
-  background: none;
-  border: none;
-  color: white;
-  font-size: 1.5rem;
-  cursor: pointer;
-  padding: 0 0.5rem;
-}
-
-.close-button:hover {
-  color: #ff4444;
-}
-
-.window-content {
-  padding: 1rem;
-  min-height: 200px;
+  background-color: #f0f0f0;
 }

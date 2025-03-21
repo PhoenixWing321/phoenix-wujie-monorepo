@@ -1,4 +1,6 @@
-import './style.css'
+import './style.css';
+import { MDIContainer } from './components/MDIContainer';
+import { Resizer } from './components/Resizer';
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="app-container">
@@ -25,66 +27,29 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
 // 工具栏宽度管理
 const MIN_WIDTH = 50;
+const COLLAPSED_MIN_WIDTH = 75;  // 收缩状态的最小宽度
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 200;
 
-function setToolbarWidth(width: number, toolbar: HTMLElement) {
-  // 确保宽度在有效范围内
-  const validWidth = Math.min(Math.max(width, MIN_WIDTH), MAX_WIDTH);
-  toolbar.style.width = `${validWidth}px`;
-  return validWidth;
-}
-
-// 添加分隔条拖动功能
-const resizer = document.querySelector('.resizer') as HTMLElement;
-const toolbar = document.querySelector('.toolbar') as HTMLElement;
-let isResizing = false;
-let startX: number;
-let startWidth: number;
-let tempWidth: number;
-
-if (resizer && toolbar) {
-  resizer.addEventListener('mousedown', (e: MouseEvent) => {
-    isResizing = true;
-    startX = e.clientX;
-    startWidth = toolbar.clientWidth;
-    tempWidth = startWidth;
-    
-    // 添加拖动状态
-    resizer.classList.add('dragging');
-    
-    // 添加临时事件监听器
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
-  });
-}
-
-function handleMouseMove(e: MouseEvent) {
-  if (!isResizing || !resizer) return;
-  
-  const width = startWidth + (e.clientX - startX);
-  // 设置最小和最大宽度
-  if (width >= MIN_WIDTH && width <= MAX_WIDTH) {
-    tempWidth = width;
-    // 更新指示线位置
-    resizer.style.setProperty('--indicator-left', `${width}px`);
+// 创建Resizer实例
+const toolbarResizer = new Resizer('.resizer', '.toolbar', {
+  minWidth: MIN_WIDTH,
+  maxWidth: MAX_WIDTH,
+  defaultWidth: DEFAULT_WIDTH,
+  onResize: (width: number) => {
+    const toolbar = document.querySelector('.toolbar') as HTMLElement;
+    if (toolbar) {
+      // 如果宽度大于最小宽度，自动切换到展开状态
+      if (width > MIN_WIDTH && toolbar.classList.contains('collapsed')) {
+        toolbar.classList.remove('collapsed');
+      }
+      // 如果宽度小于等于最小宽度，自动切换到收缩状态
+      else if (width <= MIN_WIDTH && !toolbar.classList.contains('collapsed')) {
+        toolbar.classList.add('collapsed');
+      }
+    }
   }
-}
-
-function handleMouseUp() {
-  if (!isResizing || !toolbar || !resizer) return;
-  
-  // 移除拖动状态
-  resizer.classList.remove('dragging');
-  
-  // 更新实际宽度
-  setToolbarWidth(tempWidth, toolbar);
-  
-  isResizing = false;
-  // 移除临时事件监听器
-  document.removeEventListener('mousemove', handleMouseMove);
-  document.removeEventListener('mouseup', handleMouseUp);
-}
+});
 
 // 添加工具栏展开/缩小功能
 const toggleToolbar = () => {
@@ -92,90 +57,53 @@ const toggleToolbar = () => {
   const toggleIcon = document.querySelector('.toggle-icon');
   if (toolbar && toggleIcon) {
     const isCollapsed = toolbar.classList.toggle('collapsed');
-    toggleIcon.textContent = isCollapsed ? '▶' : '◀';
-    // 根据状态设置宽度
-    setToolbarWidth(isCollapsed ? MIN_WIDTH : DEFAULT_WIDTH, toolbar);
+    // 根据状态设置宽度和最小宽度
+    const width = isCollapsed ? MIN_WIDTH : DEFAULT_WIDTH;
+    toolbarResizer.setMinWidth(isCollapsed ? COLLAPSED_MIN_WIDTH : MIN_WIDTH);
+    toolbarResizer.setWidth(width);
+    
+    // 等待下一帧再更新指示线位置，确保宽度已经应用
+    requestAnimationFrame(() => {
+      const toolbarRect = toolbar.getBoundingClientRect();
+      toolbarResizer.updateIndicatorPosition(toolbarRect.right);
+    });
   }
 };
 
+// 创建MDI容器实例
+const mdiContainer = new MDIContainer('windowsContainer');
+
 // 添加窗口功能
-let windowCount = 0;
 const addWindow = () => {
-  const container = document.getElementById('windowsContainer');
-  if (!container) return;
-
-  const window = document.createElement('div');
-  window.className = 'window';
-  window.style.left = `${20 + windowCount * 20}px`;
-  window.style.top = `${20 + windowCount * 20}px`;
-  window.innerHTML = `
-    <div class="window-header">
-      <span>窗口 ${windowCount + 1}</span>
-      <button class="close-button">×</button>
-    </div>
-    <div class="window-content">
-      这是窗口 ${windowCount + 1} 的内容
-    </div>
-  `;
-
-  // 添加拖拽功能
-  let isDragging = false;
-  let currentX: number;
-  let currentY: number;
-  let initialX: number;
-  let initialY: number;
-
-  const header = window.querySelector('.window-header');
-  if (header) {
-    header.addEventListener('mousedown', (e: MouseEvent) => {
-      isDragging = true;
-      initialX = e.clientX - window.offsetLeft;
-      initialY = e.clientY - window.offsetTop;
-      
-      // 添加临时事件监听器
-      document.addEventListener('mousemove', handleWindowMouseMove);
-      document.addEventListener('mouseup', handleWindowMouseUp);
+  const lastOpenedWindows = mdiContainer.getLastOpenedWindows();
+  
+  if (lastOpenedWindows.length === 0) {
+    // 如果没有打开的窗口，打开默认窗口
+    mdiContainer.addWindow({
+      id: `window-${Date.now()}`,
+      title: '默认窗口',
+      url: 'http://localhost:8311' // 这里替换为实际的子应用URL
     });
+  } else {
+    // 如果已有窗口，创建一个示例窗口
+    mdiContainer.addDemoWindow();
   }
-
-  function handleWindowMouseMove(e: MouseEvent) {
-    if (!isDragging) return;
-    
-    e.preventDefault();
-    currentX = e.clientX - initialX;
-    currentY = e.clientY - initialY;
-    
-    window.style.left = `${currentX}px`;
-    window.style.top = `${currentY}px`;
-  }
-
-  function handleWindowMouseUp() {
-    isDragging = false;
-    // 移除临时事件监听器
-    document.removeEventListener('mousemove', handleWindowMouseMove);
-    document.removeEventListener('mouseup', handleWindowMouseUp);
-  }
-
-  // 添加关闭按钮功能
-  const closeButton = window.querySelector('.close-button');
-  if (closeButton) {
-    closeButton.addEventListener('click', () => {
-      window.remove();
-    });
-  }
-
-  container.appendChild(window);
-  windowCount++;
 };
 
 // 清除所有窗口功能
 const clearWindows = () => {
-  const container = document.getElementById('windowsContainer');
-  if (!container) return;
-  
-  container.innerHTML = '';
-  windowCount = 0;
+  mdiContainer.clearWindows();
 };
+
+// 检查是否有上次打开的窗口
+const lastOpenedWindows = mdiContainer.getLastOpenedWindows();
+if (lastOpenedWindows.length > 0) {
+  if (confirm('是否恢复上次打开的窗口？')) {
+    lastOpenedWindows.forEach(config => {
+      mdiContainer.addWindow(config);
+    });
+  }
+}
 
 // 添加事件监听器
 document.getElementById('addWindow')?.addEventListener('click', addWindow);
