@@ -1,4 +1,5 @@
 import './MDIContainer.css';
+import { SubWindow } from './SubWindow';
 
 // 窗口配置接口
 interface WindowConfig {
@@ -24,11 +25,11 @@ interface WindowState {
 
 export class MDIContainer {
   private container: HTMLElement;
-  private windows: Map<string, HTMLElement> = new Map();
+  private windows: Map<string, SubWindow> = new Map();
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
-  private maxZIndex: number = 0;  // 记录最大的 z-index
-  private readonly Z_INDEX_THRESHOLD = 99999;  // z-index 阈值
+  private maxZIndex: number = 0;
+  private readonly Z_INDEX_THRESHOLD = 99999;
 
   constructor(containerId: string) {
     const container = document.getElementById(containerId);
@@ -56,12 +57,12 @@ export class MDIContainer {
   private activateWindow(windowId: string) {
     const window = this.windows.get(windowId);
     if (window) {
-      const currentZIndex = parseInt(window.style.zIndex) || 0;
+      const currentZIndex = parseInt(window.getElement().style.zIndex) || 0;
       
       // 如果当前窗口不是最上层，则将其提升到最上层
       if (currentZIndex < this.maxZIndex) {
         this.maxZIndex++;
-        window.style.zIndex = `${this.maxZIndex}`;
+        window.setZIndex(this.maxZIndex);
       }
 
       // 如果 z-index 超过阈值，重新整理所有窗口的 z-index
@@ -75,18 +76,15 @@ export class MDIContainer {
   private reorganizeZIndices() {
     const sortedWindows = Array.from(this.windows.entries())
       .sort((a, b) => {
-        const aIndex = parseInt(a[1].style.zIndex) || 0;
-        const bIndex = parseInt(b[1].style.zIndex) || 0;
+        const aIndex = parseInt(a[1].getElement().style.zIndex) || 0;
+        const bIndex = parseInt(b[1].getElement().style.zIndex) || 0;
         return aIndex - bIndex;
       });
 
-    // 重新分配 z-index，从 1 开始
     sortedWindows.forEach((entry, index) => {
-      const [_, win] = entry;
-      win.style.zIndex = `${index + 1}`;
+      entry[1].setZIndex(index + 1);
     });
 
-    // 更新最大 z-index
     this.maxZIndex = sortedWindows.length;
   }
 
@@ -94,7 +92,7 @@ export class MDIContainer {
   addWindow(config: WindowConfig) {
     // 检查是否已存在相同URL的窗口
     const existingWindow = Array.from(this.windows.entries())
-      .find(([_, win]) => win.getAttribute('data-url') === config.url);
+      .find(([_, win]) => win.getElement().getAttribute('data-url') === config.url);
     
     if (existingWindow) {
       // 如果存在，激活该窗口
@@ -102,53 +100,28 @@ export class MDIContainer {
       return existingWindow[0];
     }
 
-    const window = document.createElement('div');
-    window.className = 'window';
-    window.setAttribute('data-id', config.id);
-    window.setAttribute('data-url', config.url);
-    
-    // 设置初始位置和大小
-    if (config.position) {
-      window.style.left = `${config.position.x}px`;
-      window.style.top = `${config.position.y}px`;
-    } else {
-      // 默认位置
-      window.style.left = `${20 + this.windows.size * 20}px`;
-      window.style.top = `${20 + this.windows.size * 20}px`;
-    }
+    // 创建新窗口
+    const window = new SubWindow({
+      ...config,
+      zIndex: ++this.maxZIndex,
+      onClose: () => this.closeWindow(config.id),
+      onFocus: () => this.activateWindow(config.id),
+      position: config.position || {
+        x: 20 + this.windows.size * 20,
+        y: 20 + this.windows.size * 20
+      },
+      size: config.size || {
+        width: 800,
+        height: 600
+      }
+    });
 
-    if (config.size) {
-      window.style.width = `${config.size.width}px`;
-      window.style.height = `${config.size.height}px`;
-    } else {
-      // 默认大小
-      window.style.width = '800px';
-      window.style.height = '600px';
-    }
-
-    window.innerHTML = `
-      <div class="window-header">
-        <span class="window-title">${config.title}</span>
-        <div class="window-controls">
-          <button class="minimize-button">─</button>
-          <button class="maximize-button">□</button>
-          <button class="close-button">×</button>
-        </div>
-      </div>
-      <div class="window-content">
-        <iframe src="${config.url}" frameborder="0"></iframe>
-      </div>
-    `;
-
-    // 添加窗口控制功能
-    this.setupWindowControls(window);
-
-    this.container.appendChild(window);
+    // 添加到容器
+    this.container.appendChild(window.getElement());
     this.windows.set(config.id, window);
     
-    // 设置新窗口的 z-index 为最大值 + 1
-    this.maxZIndex++;
-    window.style.zIndex = `${this.maxZIndex}`;
+    // 设置拖拽
+    this.setupWindowDrag(window);
     
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
@@ -160,73 +133,9 @@ export class MDIContainer {
     return config.id;
   }
 
-  // 设置窗口控制
-  private setupWindowControls(window: HTMLElement) {
-    const header = window.querySelector('.window-header');
-    const windowContent = window.querySelector('.window-content');
-    if (!header || !windowContent) return;
-
-    const windowId = window.getAttribute('data-id') || '';
-
-    // 点击标题栏时激活窗口
-    header.addEventListener('mousedown', () => {
-      this.activateWindow(windowId);
-    });
-
-    // 监听 iframe 的点击事件
-    const iframe = windowContent.querySelector('iframe');
-    if (iframe) {
-      iframe.addEventListener('load', () => {
-        try {
-          // 尝试访问 iframe 内容并添加点击监听
-          iframe.contentWindow?.addEventListener('click', () => {
-            this.activateWindow(windowId);
-          });
-          iframe.contentWindow?.addEventListener('mousedown', () => {
-            this.activateWindow(windowId);
-          });
-        } catch (e) {
-          // 如果是跨域 iframe，则无法直接监听其事件
-          // 可以通过点击 iframe 元素本身来激活窗口
-          iframe.addEventListener('mousedown', () => {
-            this.activateWindow(windowId);
-          });
-        }
-      });
-    }
-
-    // 拖拽功能
-    this.setupWindowDrag(window);
-
-    // 最小化按钮
-    const minimizeBtn = window.querySelector('.minimize-button');
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', () => {
-        window.classList.toggle('minimized');
-      });
-    }
-
-    // 最大化按钮
-    const maximizeBtn = window.querySelector('.maximize-button');
-    if (maximizeBtn) {
-      maximizeBtn.addEventListener('click', () => {
-        window.classList.toggle('maximized');
-        this.saveWindowState(window.getAttribute('data-id') || '');
-      });
-    }
-
-    // 关闭按钮
-    const closeBtn = window.querySelector('.close-button');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        this.closeWindow(window.getAttribute('data-id') || '');
-      });
-    }
-  }
-
   // 设置窗口拖拽
-  private setupWindowDrag(window: HTMLElement) {
-    const header = window.querySelector('.window-header') as HTMLElement;
+  private setupWindowDrag(window: SubWindow) {
+    const header = window.getElement().querySelector('.window-header') as HTMLElement;
     if (!header) return;
 
     let isDragging = false;
@@ -243,13 +152,13 @@ export class MDIContainer {
 
       // 添加拖拽状态类
       this.container.classList.add('window-dragging');
-      window.classList.add('dragging');
+      window.getElement().classList.add('dragging');
 
       // 创建拖动预览
       dragPreview = document.createElement('div');
       dragPreview.className = 'window-drag-preview';
       // 复制窗口的大小和位置
-      const rect = window.getBoundingClientRect();
+      const rect = window.getElement().getBoundingClientRect();
       const containerRect = this.container.getBoundingClientRect();
       dragPreview.style.width = `${rect.width}px`;
       dragPreview.style.height = `${rect.height}px`;
@@ -296,7 +205,7 @@ export class MDIContainer {
       }
       // 移除拖拽状态类
       this.container.classList.remove('window-dragging');
-      window.classList.remove('dragging');
+      window.getElement().classList.remove('dragging');
 
       if (dragPreview) {
         // 获取预览框相对于容器的位置
@@ -305,7 +214,7 @@ export class MDIContainer {
         
         // 获取容器和窗口的尺寸
         const containerRect = this.container.getBoundingClientRect();
-        const windowWidth = window.offsetWidth;
+        const windowWidth = window.getElement().offsetWidth;
         const headerHeight = header.offsetHeight;
         
         // 最终位置的边界检查
@@ -323,13 +232,13 @@ export class MDIContainer {
         dragPreview = null;
 
         // 设置窗口到最终位置（带动画）
-        window.style.transition = 'left 0.15s, top 0.15s';
-        window.style.left = `${finalLeft}px`;
-        window.style.top = `${finalTop}px`;
+        window.getElement().style.transition = 'left 0.15s, top 0.15s';
+        window.getElement().style.left = `${finalLeft}px`;
+        window.getElement().style.top = `${finalTop}px`;
         
         // 动画结束后移除过渡效果
         setTimeout(() => {
-          window.style.transition = '';
+          window.getElement().style.transition = '';
         }, 150);
       }
     };
@@ -346,13 +255,16 @@ export class MDIContainer {
         return;
       }
 
+      // 立即开始拖拽
       isDragging = true;
-      const rect = window.getBoundingClientRect();
+      const rect = window.getElement().getBoundingClientRect();
       initialX = e.clientX - rect.left;
       initialY = e.clientY - rect.top;
       
+      // 创建拖拽元素
       createDragElements();
       
+      // 立即添加事件监听器
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     };
@@ -366,6 +278,7 @@ export class MDIContainer {
       document.removeEventListener('mouseup', handleMouseUp);
     };
 
+    // 添加鼠标按下事件监听器
     header.addEventListener('mousedown', handleMouseDown);
   }
 
@@ -377,14 +290,14 @@ export class MDIContainer {
       this.saveWindowState(windowId);
       
       // 从lastOpenedWindows中移除
-      const url = window.getAttribute('data-url');
+      const url = window.getElement().getAttribute('data-url');
       if (url) {
         this.lastOpenedWindows = this.lastOpenedWindows.filter(w => w.url !== url);
         this.saveLastOpenedWindows();
       }
       
       // 移除窗口元素并清理状态
-      window.remove();
+      window.getElement().remove();
       this.windows.delete(windowId);
       this.windowStates.delete(windowId);
     }
@@ -394,16 +307,14 @@ export class MDIContainer {
   private saveWindowState(windowId: string) {
     const window = this.windows.get(windowId);
     if (window) {
+      const position = window.getPosition();
+      const size = window.getSize();
+      const isMaximized = window.getElement().classList.contains('maximized');
+
       this.windowStates.set(windowId, {
-        position: { 
-          x: window.offsetLeft, 
-          y: window.offsetTop 
-        },
-        size: { 
-          width: window.offsetWidth, 
-          height: window.offsetHeight 
-        },
-        isMaximized: window.classList.contains('maximized')
+        position,
+        size,
+        isMaximized
       });
     }
   }
@@ -441,9 +352,9 @@ export class MDIContainer {
 
   // 清除所有窗口
   clearWindows() {
-    this.container.innerHTML = '';
+    this.windows.forEach(window => window.getElement().remove());
     this.windows.clear();
     this.windowStates.clear();
-    this.maxZIndex = 0;  // 重置最大 z-index
+    this.maxZIndex = 0;
   }
 } 
