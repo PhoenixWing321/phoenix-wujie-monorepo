@@ -75,12 +75,40 @@ const mdiContainer = new MDIContainer('windowsContainer');
 
 // 添加窗口功能
 const addWindow = () => {
-  const windowId = `window-${Date.now()}`;
-  mdiContainer.addWindow({
-    id: windowId,
-    title: `窗口 ${mdiContainer.getLastOpenedWindows().length + 1}`,
-    url: 'http://localhost:8311' // 这里替换为实际的子应用URL
-  });
+  const lastOpenedWindows = mdiContainer.getLastOpenedWindows();
+  
+  if (lastOpenedWindows.length === 0) {
+    // 如果没有打开的窗口，打开默认窗口
+    mdiContainer.addWindow({
+      id: `window-${Date.now()}`,
+      title: '默认窗口',
+      url: 'http://localhost:8311' // 这里替换为实际的子应用URL
+    });
+  } else {
+    // 如果已有窗口，创建一个示例窗口
+    const windowId = `window-${Date.now()}`;
+    const demoContent = `
+      <div style="padding: 20px; text-align: center;">
+        <h2>示例窗口</h2>
+        <p>这是一个用于演示的示例窗口，您可以：</p>
+        <ul style="text-align: left; margin-top: 10px;">
+          <li>拖动窗口标题栏来移动窗口</li>
+          <li>点击右上角按钮最小化/最大化窗口</li>
+          <li>关闭窗口</li>
+        </ul>
+      </div>
+    `;
+    
+    // 创建一个 blob URL 来显示示例内容
+    const blob = new Blob([demoContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    mdiContainer.addWindow({
+      id: windowId,
+      title: '示例窗口',
+      url: url
+    });
+  }
 };
 
 // 清除所有窗口功能
