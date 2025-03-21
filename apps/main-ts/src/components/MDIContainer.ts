@@ -27,6 +27,8 @@ export class MDIContainer {
   private windows: Map<string, HTMLElement> = new Map();
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
+  private maxZIndex: number = 0;  // 记录最大的 z-index
+  private readonly Z_INDEX_THRESHOLD = 99999;  // z-index 阈值
 
   constructor(containerId: string) {
     const container = document.getElementById(containerId);
@@ -48,6 +50,44 @@ export class MDIContainer {
   // 保存窗口记录
   private saveLastOpenedWindows() {
     localStorage.setItem('lastOpenedWindows', JSON.stringify(this.lastOpenedWindows));
+  }
+
+  // 激活窗口
+  private activateWindow(windowId: string) {
+    const window = this.windows.get(windowId);
+    if (window) {
+      const currentZIndex = parseInt(window.style.zIndex) || 0;
+      
+      // 如果当前窗口不是最上层，则将其提升到最上层
+      if (currentZIndex < this.maxZIndex) {
+        this.maxZIndex++;
+        window.style.zIndex = `${this.maxZIndex}`;
+      }
+
+      // 如果 z-index 超过阈值，重新整理所有窗口的 z-index
+      if (this.maxZIndex >= this.Z_INDEX_THRESHOLD) {
+        this.reorganizeZIndices();
+      }
+    }
+  }
+
+  // 重新整理所有窗口的 z-index
+  private reorganizeZIndices() {
+    const sortedWindows = Array.from(this.windows.entries())
+      .sort((a, b) => {
+        const aIndex = parseInt(a[1].style.zIndex) || 0;
+        const bIndex = parseInt(b[1].style.zIndex) || 0;
+        return aIndex - bIndex;
+      });
+
+    // 重新分配 z-index，从 1 开始
+    sortedWindows.forEach((entry, index) => {
+      const [_, win] = entry;
+      win.style.zIndex = `${index + 1}`;
+    });
+
+    // 更新最大 z-index
+    this.maxZIndex = sortedWindows.length;
   }
 
   // 添加新窗口
@@ -106,33 +146,54 @@ export class MDIContainer {
     this.container.appendChild(window);
     this.windows.set(config.id, window);
     
+    // 设置新窗口的 z-index 为最大值 + 1
+    this.maxZIndex++;
+    window.style.zIndex = `${this.maxZIndex}`;
+    
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
       config,
       ...this.lastOpenedWindows.filter(w => w.url !== config.url)
-    ].slice(0, 10); // 只保留最近10个
+    ].slice(0, 10);
     this.saveLastOpenedWindows();
 
     return config.id;
   }
 
-  // 激活窗口
-  private activateWindow(windowId: string) {
-    const window = this.windows.get(windowId);
-    if (window) {
-      // 将窗口置于最上层
-      const maxZIndex = Math.max(
-        ...Array.from(this.windows.values())
-          .map(w => parseInt(w.style.zIndex) || 0)
-      );
-      window.style.zIndex = `${maxZIndex + 1}`;
-    }
-  }
-
   // 设置窗口控制
   private setupWindowControls(window: HTMLElement) {
     const header = window.querySelector('.window-header');
-    if (!header) return;
+    const windowContent = window.querySelector('.window-content');
+    if (!header || !windowContent) return;
+
+    const windowId = window.getAttribute('data-id') || '';
+
+    // 点击标题栏时激活窗口
+    header.addEventListener('mousedown', () => {
+      this.activateWindow(windowId);
+    });
+
+    // 监听 iframe 的点击事件
+    const iframe = windowContent.querySelector('iframe');
+    if (iframe) {
+      iframe.addEventListener('load', () => {
+        try {
+          // 尝试访问 iframe 内容并添加点击监听
+          iframe.contentWindow?.addEventListener('click', () => {
+            this.activateWindow(windowId);
+          });
+          iframe.contentWindow?.addEventListener('mousedown', () => {
+            this.activateWindow(windowId);
+          });
+        } catch (e) {
+          // 如果是跨域 iframe，则无法直接监听其事件
+          // 可以通过点击 iframe 元素本身来激活窗口
+          iframe.addEventListener('mousedown', () => {
+            this.activateWindow(windowId);
+          });
+        }
+      });
+    }
 
     // 拖拽功能
     this.setupWindowDrag(window);
@@ -247,10 +308,37 @@ export class MDIContainer {
     return this.lastOpenedWindows;
   }
 
+  // 创建示例窗口
+  addDemoWindow(): string {
+    const windowId = `window-${Date.now()}`;
+    const demoContent = `
+      <div style="padding: 20px; text-align: center;">
+        <h2>示例窗口</h2>
+        <p>这是一个用于演示的示例窗口，您可以：</p>
+        <ul style="text-align: left; margin-top: 10px;">
+          <li>拖动窗口标题栏来移动窗口</li>
+          <li>点击右上角按钮最小化/最大化窗口</li>
+          <li>关闭窗口</li>
+        </ul>
+      </div>
+    `;
+    
+    // 创建一个 blob URL 来显示示例内容
+    const blob = new Blob([demoContent], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    
+    return this.addWindow({
+      id: windowId,
+      title: '示例窗口',
+      url: url
+    });
+  }
+
   // 清除所有窗口
   clearWindows() {
     this.container.innerHTML = '';
     this.windows.clear();
     this.windowStates.clear();
+    this.maxZIndex = 0;  // 重置最大 z-index
   }
 } 

@@ -86,28 +86,7 @@ const addWindow = () => {
     });
   } else {
     // 如果已有窗口，创建一个示例窗口
-    const windowId = `window-${Date.now()}`;
-    const demoContent = `
-      <div style="padding: 20px; text-align: center;">
-        <h2>示例窗口</h2>
-        <p>这是一个用于演示的示例窗口，您可以：</p>
-        <ul style="text-align: left; margin-top: 10px;">
-          <li>拖动窗口标题栏来移动窗口</li>
-          <li>点击右上角按钮最小化/最大化窗口</li>
-          <li>关闭窗口</li>
-        </ul>
-      </div>
-    `;
-    
-    // 创建一个 blob URL 来显示示例内容
-    const blob = new Blob([demoContent], { type: 'text/html' });
-    const url = URL.createObjectURL(blob);
-    
-    mdiContainer.addWindow({
-      id: windowId,
-      title: '示例窗口',
-      url: url
-    });
+    mdiContainer.addDemoWindow();
   }
 };
 
