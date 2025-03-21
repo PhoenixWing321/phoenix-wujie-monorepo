@@ -226,37 +226,142 @@ export class MDIContainer {
 
   // 设置窗口拖拽
   private setupWindowDrag(window: HTMLElement) {
-    const header = window.querySelector('.window-header');
+    const header = window.querySelector('.window-header') as HTMLElement;
     if (!header) return;
 
     let isDragging = false;
     let initialX: number;
     let initialY: number;
+    let dragPreview: HTMLElement | null = null;
+    let overlay: HTMLElement | null = null;
 
-    const handleMouseDown = (e: Event) => {
-      const mouseEvent = e as MouseEvent;
+    const createDragElements = () => {
+      // 创建遮罩层
+      overlay = document.createElement('div');
+      overlay.className = 'window-drag-overlay';
+      this.container.appendChild(overlay);
+
+      // 添加拖拽状态类
+      this.container.classList.add('window-dragging');
+      window.classList.add('dragging');
+
+      // 创建拖动预览
+      dragPreview = document.createElement('div');
+      dragPreview.className = 'window-drag-preview';
+      // 复制窗口的大小和位置
+      const rect = window.getBoundingClientRect();
+      const containerRect = this.container.getBoundingClientRect();
+      dragPreview.style.width = `${rect.width}px`;
+      dragPreview.style.height = `${rect.height}px`;
+      dragPreview.style.left = `${rect.left - containerRect.left}px`;
+      dragPreview.style.top = `${rect.top - containerRect.top}px`;
+      this.container.appendChild(dragPreview);
+    };
+
+    const handleMouseMove = (e: MouseEvent) => {
+      if (!isDragging || !dragPreview) return;
+      
+      e.preventDefault();
+      
+      // 计算新位置（相对于容器）
+      const containerRect = this.container.getBoundingClientRect();
+      let currentX = e.clientX - containerRect.left - initialX;
+      let currentY = e.clientY - containerRect.top - initialY;
+
+      // 获取容器和预览框的尺寸
+      const containerWidth = containerRect.width;
+      const containerHeight = containerRect.height;
+      const previewWidth = dragPreview.offsetWidth;
+      const headerHeight = header.offsetHeight;
+      
+      // 边界检查
+      // 左边界：不能完全移出左侧（至少保留100px宽度）
+      currentX = Math.max(currentX, -previewWidth + 100);
+      // 右边界：不能完全移出右侧（至少保留100px宽度）
+      currentX = Math.min(currentX, containerWidth - 100);
+      // 上边界：不能移出顶部
+      currentY = Math.max(currentY, 0);
+      // 下边界：不能完全移出底部（至少保留标题栏高度）
+      currentY = Math.min(currentY, containerHeight - headerHeight);
+      
+      // 更新预览框的位置
+      dragPreview.style.left = `${currentX}px`;
+      dragPreview.style.top = `${currentY}px`;
+    };
+
+    const removeDragElements = () => {
+      if (overlay) {
+        overlay.remove();
+        overlay = null;
+      }
+      // 移除拖拽状态类
+      this.container.classList.remove('window-dragging');
+      window.classList.remove('dragging');
+
+      if (dragPreview) {
+        // 获取预览框相对于容器的位置
+        let finalLeft = parseFloat(dragPreview.style.left);
+        let finalTop = parseFloat(dragPreview.style.top);
+        
+        // 获取容器和窗口的尺寸
+        const containerRect = this.container.getBoundingClientRect();
+        const windowWidth = window.offsetWidth;
+        const headerHeight = header.offsetHeight;
+        
+        // 最终位置的边界检查
+        // 左边界：不能完全移出左侧（至少保留100px宽度）
+        finalLeft = Math.max(finalLeft, -windowWidth + 100);
+        // 右边界：不能完全移出右侧（至少保留100px宽度）
+        finalLeft = Math.min(finalLeft, containerRect.width - 100);
+        // 上边界：不能移出顶部
+        finalTop = Math.max(finalTop, 0);
+        // 下边界：不能完全移出底部（至少保留标题栏高度）
+        finalTop = Math.min(finalTop, containerRect.height - headerHeight);
+        
+        // 移除预览框
+        dragPreview.remove();
+        dragPreview = null;
+
+        // 设置窗口到最终位置（带动画）
+        window.style.transition = 'left 0.15s, top 0.15s';
+        window.style.left = `${finalLeft}px`;
+        window.style.top = `${finalTop}px`;
+        
+        // 动画结束后移除过渡效果
+        setTimeout(() => {
+          window.style.transition = '';
+        }, 150);
+      }
+    };
+
+    const handleMouseDown = (e: MouseEvent) => {
+      const target = e.target as HTMLElement;
+      
+      // 只有点击标题区域（不包括控制按钮）时才启动拖拽
+      const isClickOnTitle = target.classList.contains('window-header') || 
+                           target.classList.contains('window-title') ||
+                           (target === header && !target.closest('.window-controls'));
+      
+      if (!isClickOnTitle) {
+        return;
+      }
+
       isDragging = true;
-      initialX = mouseEvent.clientX - window.offsetLeft;
-      initialY = mouseEvent.clientY - window.offsetTop;
+      const rect = window.getBoundingClientRect();
+      initialX = e.clientX - rect.left;
+      initialY = e.clientY - rect.top;
+      
+      createDragElements();
       
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
     };
 
-    const handleMouseMove = (e: Event) => {
-      if (!isDragging) return;
-      
-      const mouseEvent = e as MouseEvent;
-      e.preventDefault();
-      const currentX = mouseEvent.clientX - initialX;
-      const currentY = mouseEvent.clientY - initialY;
-      
-      window.style.left = `${currentX}px`;
-      window.style.top = `${currentY}px`;
-    };
-
     const handleMouseUp = () => {
-      isDragging = false;
+      if (isDragging) {
+        removeDragElements();
+        isDragging = false;
+      }
       document.removeEventListener('mousemove', handleMouseMove);
       document.removeEventListener('mouseup', handleMouseUp);
     };

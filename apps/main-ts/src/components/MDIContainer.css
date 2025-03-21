@@ -7,6 +7,35 @@
   display: flex;  /* 添加这个确保内容能正确显示 */
 }
 
+/* 窗口拖动预览 */
+.window-drag-preview {
+  position: absolute;
+  border: 2px solid #2196F3;
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 100000;
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+}
+
+/* 拖动时的遮罩层 */
+.window-drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);  /* 半透明灰色背景 */
+  z-index: 99998;
+  cursor: move;
+  pointer-events: auto;  /* 改回 auto，以捕获所有事件 */
+}
+
+/* 拖动时禁用其他窗口的指针事件 */
+.window-dragging .window:not(.dragging) {
+  pointer-events: none;
+}
+
 /* 窗口样式 */
 .window {
   position: absolute;
