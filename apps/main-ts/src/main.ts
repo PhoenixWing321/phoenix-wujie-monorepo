@@ -27,6 +27,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
 
 // 工具栏宽度管理
 const MIN_WIDTH = 50;
+const COLLAPSED_MIN_WIDTH = 75;  // 收缩状态的最小宽度
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 200;
 
@@ -34,7 +35,20 @@ const DEFAULT_WIDTH = 200;
 const toolbarResizer = new Resizer('.resizer', '.toolbar', {
   minWidth: MIN_WIDTH,
   maxWidth: MAX_WIDTH,
-  defaultWidth: DEFAULT_WIDTH
+  defaultWidth: DEFAULT_WIDTH,
+  onResize: (width: number) => {
+    const toolbar = document.querySelector('.toolbar') as HTMLElement;
+    if (toolbar) {
+      // 如果宽度大于最小宽度，自动切换到展开状态
+      if (width > MIN_WIDTH && toolbar.classList.contains('collapsed')) {
+        toolbar.classList.remove('collapsed');
+      }
+      // 如果宽度小于等于最小宽度，自动切换到收缩状态
+      else if (width <= MIN_WIDTH && !toolbar.classList.contains('collapsed')) {
+        toolbar.classList.add('collapsed');
+      }
+    }
+  }
 });
 
 // 添加工具栏展开/缩小功能
@@ -43,8 +57,9 @@ const toggleToolbar = () => {
   const toggleIcon = document.querySelector('.toggle-icon');
   if (toolbar && toggleIcon) {
     const isCollapsed = toolbar.classList.toggle('collapsed');
-    // 根据状态设置宽度
+    // 根据状态设置宽度和最小宽度
     const width = isCollapsed ? MIN_WIDTH : DEFAULT_WIDTH;
+    toolbarResizer.setMinWidth(isCollapsed ? COLLAPSED_MIN_WIDTH : MIN_WIDTH);
     toolbarResizer.setWidth(width);
     
     // 等待下一帧再更新指示线位置，确保宽度已经应用

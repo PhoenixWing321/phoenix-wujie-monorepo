@@ -1,3 +1,5 @@
+import './MDIContainer.css';
+
 // 窗口配置接口
 interface WindowConfig {
   id: string;          // 窗口唯一标识
@@ -207,8 +209,18 @@ export class MDIContainer {
     if (window) {
       // 保存窗口状态
       this.saveWindowState(windowId);
+      
+      // 从lastOpenedWindows中移除
+      const url = window.getAttribute('data-url');
+      if (url) {
+        this.lastOpenedWindows = this.lastOpenedWindows.filter(w => w.url !== url);
+        this.saveLastOpenedWindows();
+      }
+      
+      // 移除窗口元素并清理状态
       window.remove();
       this.windows.delete(windowId);
+      this.windowStates.delete(windowId);
     }
   }
 

@@ -9,8 +9,8 @@ export class Resizer {
   private tempWidth: number = 0;
   private minWidth: number;
   private maxWidth: number;
-  private defaultWidth: number;
   private checkInterval: number | null = null;
+  private onResize?: (width: number) => void;
 
   constructor(
     elementId: string,
@@ -19,6 +19,7 @@ export class Resizer {
       minWidth?: number;
       maxWidth?: number;
       defaultWidth?: number;
+      onResize?: (width: number) => void;
     } = {}
   ) {
     this.element = document.querySelector(elementId) as HTMLElement;
@@ -33,7 +34,7 @@ export class Resizer {
 
     this.minWidth = options.minWidth || 50;
     this.maxWidth = options.maxWidth || 400;
-    this.defaultWidth = options.defaultWidth || 200;
+    this.onResize = options.onResize;
 
     this.init();
   }
@@ -82,6 +83,8 @@ export class Resizer {
       this.tempWidth = width;
       // 更新指示线位置
       this.element.style.setProperty('--indicator-left', `${e.clientX}px`);
+      // 调用onResize回调
+      this.onResize?.(width);
     }
   }
 
@@ -112,6 +115,11 @@ export class Resizer {
     const validWidth = Math.min(Math.max(width, this.minWidth), this.maxWidth);
     this.targetElement.style.width = `${validWidth}px`;
     return validWidth;
+  }
+
+  // 公共方法：设置最小宽度
+  public setMinWidth(width: number): void {
+    this.minWidth = width;
   }
 
   // 公共方法：更新指示线位置
