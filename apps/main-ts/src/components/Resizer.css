@@ -1,0 +1,56 @@
+.resizer {
+  width: 4px;
+  background-color: #ddd;
+  cursor: col-resize;
+  position: relative;
+  z-index: 100;
+}
+
+.resizer::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  bottom: 0;
+  width: 3px;
+  background-color: #2196F3;
+  pointer-events: none;
+  z-index: 1000;
+  opacity: 0;
+  transition: opacity 0.3s;
+  left: var(--indicator-left, 0);
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+  border-radius: 2px;
+}
+
+.resizer::after {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  pointer-events: none;
+  z-index: 999;
+  opacity: 0;
+  transition: opacity 0.3s;
+}
+
+.resizer:hover::before,
+.resizer.dragging::before,
+.resizer.dragging::after {
+  opacity: 1;
+}
+
+.resizer.dragging {
+  cursor: col-resize;
+  user-select: none;
+}
+
+.resizer.dragging ~ * {
+  pointer-events: none;
+}
+
+.resizer.dragging::after {
+  pointer-events: auto;
+} 
