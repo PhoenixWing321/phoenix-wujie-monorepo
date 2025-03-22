@@ -1,3 +1,32 @@
+.indicator {
+  position: fixed;
+  pointer-events: none;
+  z-index: 9999;
+  border: 2px dashed #4CAF50;
+  background: rgba(76,175,80,0.1);
+  display: none;
+}
+
+.indicator.visible {
+  display: block;
+}
+
+.mask {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.05);
+  pointer-events: none;
+  z-index: 9998;
+  display: none;
+}
+
+.mask.visible {
+  display: block;
+}
+
 .mover-indicator {
   position: fixed;
   pointer-events: none;
