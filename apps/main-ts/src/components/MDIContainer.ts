@@ -95,10 +95,26 @@ export class MDIContainer {
       .find(([_, win]) => win.getAttribute('data-url') === config.url);
     
     if (existingWindow) {
+      console.log('existingWindow', existingWindow);
       // 如果存在，激活该窗口
       this.activateWindow(existingWindow[0]);
       return existingWindow[0];
     }
+    console.log('addWindow', config);
+
+    // 计算新窗口的位置
+    const windowCount = this.windows.size;
+    const offset = 30; // 每个窗口错开的距离
+    const defaultPosition = {
+      x: offset * (windowCount % 10), // 最多错开10个位置，然后重新开始
+      y: offset * (windowCount % 10)
+    };
+
+    // 设置默认大小
+    const defaultSize = {
+      width: 800,
+      height: 600
+    };
 
     // 创建新窗口
     const windowElement = document.createElement('window-component');
@@ -107,12 +123,14 @@ export class MDIContainer {
     windowElement.setAttribute('url', config.url);
     windowElement.setAttribute('data-url', config.url);
     
-    if (config.position) {
-      windowElement.setAttribute('position', JSON.stringify(config.position));
-    }
-    if (config.size) {
-      windowElement.setAttribute('size', JSON.stringify(config.size));
-    }
+    // 使用配置的位置或默认位置
+    const position = config.position || defaultPosition;
+    windowElement.setAttribute('position', JSON.stringify(position));
+    
+    // 使用配置的大小或默认大小
+    const size = config.size || defaultSize;
+    windowElement.setAttribute('size', JSON.stringify(size));
+    
     windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
 
     // 添加事件监听器
@@ -219,5 +237,6 @@ export class MDIContainer {
     this.windows.clear();
     this.windowStates.clear();
     this.maxZIndex = 0;
+    this.lastOpenedWindows = [];
   }
 } 

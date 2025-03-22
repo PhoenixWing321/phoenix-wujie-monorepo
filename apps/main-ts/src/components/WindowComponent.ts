@@ -26,13 +26,59 @@ export class WindowComponent extends HTMLElement {
     this.element = document.createElement('div');
     this.element.className = 'window';
     this.props = {
-      id: this.getAttribute('id') || '',
-      title: this.getAttribute('title') || '',
-      url: this.getAttribute('url') || '',
-      position: this.getAttribute('position') ? JSON.parse(this.getAttribute('position')!) : undefined,
-      size: this.getAttribute('size') ? JSON.parse(this.getAttribute('size')!) : undefined,
-      zIndex: this.getAttribute('z-index') ? parseInt(this.getAttribute('z-index')!) : undefined
+      id: '',
+      title: '',
+      url: '',
+      position: undefined,
+      size: undefined,
+      zIndex: undefined
     };
+  }
+
+  // 当元素的属性发生变化时调用
+  static get observedAttributes() {
+    return ['id', 'title', 'url', 'position', 'size', 'z-index'];
+  }
+
+  attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+    if (oldValue === newValue) return;
+
+    switch (name) {
+      case 'id':
+        this.props.id = newValue;
+        break;
+      case 'title':
+        this.props.title = newValue;
+        break;
+      case 'url':
+        this.props.url = newValue;
+        break;
+      case 'position':
+        this.props.position = newValue ? JSON.parse(newValue) : undefined;
+        if (this.props.position) {
+          this.element.style.left = `${this.props.position.x}px`;
+          this.element.style.top = `${this.props.position.y}px`;
+        }
+        break;
+      case 'size':
+        this.props.size = newValue ? JSON.parse(newValue) : undefined;
+        if (this.props.size) {
+          this.element.style.width = `${this.props.size.width}px`;
+          this.element.style.height = `${this.props.size.height}px`;
+        }
+        break;
+      case 'z-index':
+        this.props.zIndex = newValue ? parseInt(newValue) : undefined;
+        if (this.props.zIndex !== undefined) {
+          this.element.style.zIndex = this.props.zIndex.toString();
+        }
+        break;
+    }
+
+    // 如果组件已经连接到DOM，更新渲染
+    if (this.isConnected) {
+      this.render();
+    }
   }
 
   // 当组件被添加到 DOM 时调用
@@ -51,8 +97,13 @@ export class WindowComponent extends HTMLElement {
   private setupStyles() {
     const style = document.createElement('style');
     style.textContent = `
-      .window {
+      :host {
+        display: block;
         position: absolute;
+      }
+
+      .window {
+        position: relative;
         background-color: #fff;
         border: 1px solid #ddd;
         border-radius: 4px;
@@ -62,6 +113,8 @@ export class WindowComponent extends HTMLElement {
         min-width: 200px;
         min-height: 150px;
         transition: box-shadow 0.3s;
+        width: 100%;
+        height: 100%;
       }
 
       .window:hover {
@@ -251,7 +304,10 @@ export class WindowComponent extends HTMLElement {
       this.element.style.zIndex = this.props.zIndex.toString();
     }
 
-    this.shadow.appendChild(this.element);
+    // 如果是第一次渲染，将元素添加到shadow DOM
+    if (!this.shadow.contains(this.element)) {
+      this.shadow.appendChild(this.element);
+    }
   }
 
   private setupEventListeners() {
@@ -346,6 +402,8 @@ export class WindowComponent extends HTMLElement {
 
   // 拖拽相关方法
   private startDrag(e: MouseEvent) {
+    if (this.isMaximized) return;
+    
     this.isDragging = true;
     const rect = this.element.getBoundingClientRect();
     const startX = e.clientX - rect.left;

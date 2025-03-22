@@ -100,7 +100,7 @@
 
 <body>
   <div class="left">
-    <button class="add-button" onclick="addNewElement()">添加新元素</button>
+    <button id="addElementBtn" class="add-button">添加新元素</button>
   </div>
   <div class="container">
     <div class="title">title</div>
@@ -131,11 +131,9 @@
       }
       
       element.addEventListener('mousedown', function(e) { 
-        // 如果z-index<zMax，则更新zMax
-        if (element.style.zIndex < zMax) {
-            element.style.zIndex = zMax +1; 
-            zMax++;
-        }  
+        // 更新z-index
+        zMax++;
+        element.style.zIndex = zMax;
         
         // 设置当前目标
         sharedMover.setAttribute('target', `#${element.id}`);
@@ -149,7 +147,7 @@
     appendMoveController(targetElement);
 
     let elementCount = 0;
-    window.addNewElement = () => {
+    function addNewElement() {
       const middleArea = document.getElementById('middle-area');
       const element = document.createElement('div');
       elementCount++;
@@ -176,7 +174,10 @@
       
       // 添加元素到DOM
       middleArea.appendChild(element);
-    };
+    }
+
+    // 使用addEventListener绑定事件
+    document.getElementById('addElementBtn')?.addEventListener('click', addNewElement);
 
     // 在mouseup时清除target
     document.addEventListener('mouseup', () => {
