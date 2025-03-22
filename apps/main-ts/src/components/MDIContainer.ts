@@ -1,4 +1,7 @@
 import './MDIContainer.css';
+import { WindowComponent } from './WindowComponent';
+import { MoverComponent } from './MoverComponent';
+
 
 // 窗口配置接口
 interface WindowConfig {
@@ -22,21 +25,47 @@ interface WindowState {
   isMaximized: boolean;
 }
 
-export class MDIContainer {
-  private container: HTMLElement;
-  private windows: Map<string, HTMLElement> = new Map();
+export class MDIContainer extends HTMLElement {
+  private windows: WindowComponent[] = [];
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
-  private maxZIndex: number = 0;  // 记录最大的 z-index
-  private readonly Z_INDEX_THRESHOLD = 99999;  // z-index 阈值
+  private maxZIndex: number = 0;
+  private readonly Z_INDEX_THRESHOLD = 99999;
+  private sharedMover: MoverComponent;
+  private toolButtons: HTMLElement;
+  private lastArrangement: 'cascade' | 'tile' | null = null;
 
-  constructor(containerId: string) {
-    const container = document.getElementById(containerId);
-    if (!container) {
-      throw new Error(`Container with id ${containerId} not found`);
-    }
-    this.container = container;
-    this.loadLastOpenedWindows();
+  constructor() {
+    super();
+    
+    // 创建共享的 mover-component
+    this.sharedMover = new MoverComponent();
+    this.appendChild(this.sharedMover);
+    
+    // 添加工具按钮容器
+    this.toolButtons = document.createElement('div');
+    this.toolButtons.className = 'mdi-tool-buttons';
+    this.appendChild(this.toolButtons);
+
+    // 添加排列按钮
+    const cascadeButton = document.createElement('button');
+    cascadeButton.textContent = '层叠排列';
+    cascadeButton.className = 'mdi-tool-button';
+    cascadeButton.onclick = () => this.arrangeWindowsCascade();
+    this.toolButtons.appendChild(cascadeButton);
+
+    const tileButton = document.createElement('button');
+    tileButton.textContent = '并排排列';
+    tileButton.className = 'mdi-tool-button';
+    tileButton.onclick = () => this.arrangeWindowsTile();
+    this.toolButtons.appendChild(tileButton);
+
+    // 监听窗口大小变化
+    window.addEventListener('resize', () => {
+      if (this.lastArrangement === 'tile') {
+        this.arrangeWindowsTile();
+      }
+    });
   }
 
   // 加载上次打开的窗口记录
@@ -54,14 +83,14 @@ export class MDIContainer {
 
   // 激活窗口
   private activateWindow(windowId: string) {
-    const window = this.windows.get(windowId);
+    const window = this.windows.find(w => w.id === windowId);
     if (window) {
       const currentZIndex = parseInt(window.style.zIndex) || 0;
       
       // 如果当前窗口不是最上层，则将其提升到最上层
       if (currentZIndex < this.maxZIndex) {
         this.maxZIndex++;
-        window.style.zIndex = `${this.maxZIndex}`;
+        window.style.zIndex = this.maxZIndex.toString();
       }
 
       // 如果 z-index 超过阈值，重新整理所有窗口的 z-index
@@ -73,82 +102,78 @@ export class MDIContainer {
 
   // 重新整理所有窗口的 z-index
   private reorganizeZIndices() {
-    const sortedWindows = Array.from(this.windows.entries())
+    const sortedWindows = Array.from(this.windows)
       .sort((a, b) => {
-        const aIndex = parseInt(a[1].style.zIndex) || 0;
-        const bIndex = parseInt(b[1].style.zIndex) || 0;
+        const aIndex = parseInt(a.style.zIndex) || 0;
+        const bIndex = parseInt(b.style.zIndex) || 0;
         return aIndex - bIndex;
       });
 
-    // 重新分配 z-index，从 1 开始
-    sortedWindows.forEach((entry, index) => {
-      const [_, win] = entry;
-      win.style.zIndex = `${index + 1}`;
+    sortedWindows.forEach((window, index) => {
+      window.style.zIndex = (index + 1).toString();
     });
 
-    // 更新最大 z-index
     this.maxZIndex = sortedWindows.length;
   }
 
   // 添加新窗口
   addWindow(config: WindowConfig) {
+    console.log('addWindow', config);
     // 检查是否已存在相同URL的窗口
-    const existingWindow = Array.from(this.windows.entries())
-      .find(([_, win]) => win.getAttribute('data-url') === config.url);
+    const existingWindow = this.windows.find(w => w.getAttribute('data-url') === config.url);
     
     if (existingWindow) {
+      console.log('existingWindow', existingWindow);
       // 如果存在，激活该窗口
-      this.activateWindow(existingWindow[0]);
-      return existingWindow[0];
+      this.activateWindow(existingWindow.id);
+      return existingWindow.id;
     }
 
-    const window = document.createElement('div');
-    window.className = 'window';
-    window.setAttribute('data-id', config.id);
-    window.setAttribute('data-url', config.url);
-    
-    // 设置初始位置和大小
-    if (config.position) {
-      window.style.left = `${config.position.x}px`;
-      window.style.top = `${config.position.y}px`;
-    } else {
-      // 默认位置
-      window.style.left = `${20 + this.windows.size * 20}px`;
-      window.style.top = `${20 + this.windows.size * 20}px`;
-    }
+    // 计算错开的位置
+    const windowCount = this.windows.length;
+    const offset = 30; // 每个窗口错开的距离
+    const position = config.position || {
+      x: offset * (windowCount % 10), // 最多错开10个位置，然后重新开始
+      y: offset * (windowCount % 10)
+    };
 
-    if (config.size) {
-      window.style.width = `${config.size.width}px`;
-      window.style.height = `${config.size.height}px`;
-    } else {
-      // 默认大小
-      window.style.width = '800px';
-      window.style.height = '600px';
-    }
+    // 设置默认大小
+    const size = config.size || {
+      width: 800,
+      height: 600
+    };
 
-    window.innerHTML = `
-      <div class="window-header">
-        <span class="window-title">${config.title}</span>
-        <div class="window-controls">
-          <button class="minimize-button">─</button>
-          <button class="maximize-button">□</button>
-          <button class="close-button">×</button>
-        </div>
-      </div>
-      <div class="window-content">
-        <iframe src="${config.url}" frameborder="0"></iframe>
-      </div>
-    `;
+    // 创建新窗口
+    const windowElement = new WindowComponent();
+    windowElement.setAttribute('id', config.id);
+    windowElement.setAttribute('title', config.title);
+    windowElement.setAttribute('url', config.url);
+    windowElement.setAttribute('data-url', config.url);
+    windowElement.setAttribute('position', JSON.stringify(position));
+    windowElement.setAttribute('size', JSON.stringify(size));
+    windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
 
-    // 添加窗口控制功能
-    this.setupWindowControls(window);
+    // 添加事件监听器
+    windowElement.addEventListener('focus', () => this.activateWindow(config.id));
+    windowElement.addEventListener('close', () => this.closeWindow(config.id));
+    windowElement.addEventListener('minimize', () => {
+      // 处理最小化事件
+    });
+    windowElement.addEventListener('maximize', () => {
+      // 处理最大化事件
+    });
+    windowElement.addEventListener('movestart', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      // 设置当前目标并初始化移动
+      this.sharedMover.setAttribute('target', `#${config.id}`);
+      // 将 sharedMover 的 mask 设置为 Shadow DOM 的根元素
+      this.sharedMover.setAttribute('mask', ':host');
+      (this.sharedMover as any).initializeMove(customEvent.detail.mouseEvent);
+    });
 
-    this.container.appendChild(window);
-    this.windows.set(config.id, window);
-    
-    // 设置新窗口的 z-index 为最大值 + 1
-    this.maxZIndex++;
-    window.style.zIndex = `${this.maxZIndex}`;
+    // 修改添加到容器的方式
+    this.appendChild(windowElement);
+    this.windows.push(windowElement);
     
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
@@ -160,113 +185,9 @@ export class MDIContainer {
     return config.id;
   }
 
-  // 设置窗口控制
-  private setupWindowControls(window: HTMLElement) {
-    const header = window.querySelector('.window-header');
-    const windowContent = window.querySelector('.window-content');
-    if (!header || !windowContent) return;
-
-    const windowId = window.getAttribute('data-id') || '';
-
-    // 点击标题栏时激活窗口
-    header.addEventListener('mousedown', () => {
-      this.activateWindow(windowId);
-    });
-
-    // 监听 iframe 的点击事件
-    const iframe = windowContent.querySelector('iframe');
-    if (iframe) {
-      iframe.addEventListener('load', () => {
-        try {
-          // 尝试访问 iframe 内容并添加点击监听
-          iframe.contentWindow?.addEventListener('click', () => {
-            this.activateWindow(windowId);
-          });
-          iframe.contentWindow?.addEventListener('mousedown', () => {
-            this.activateWindow(windowId);
-          });
-        } catch (e) {
-          // 如果是跨域 iframe，则无法直接监听其事件
-          // 可以通过点击 iframe 元素本身来激活窗口
-          iframe.addEventListener('mousedown', () => {
-            this.activateWindow(windowId);
-          });
-        }
-      });
-    }
-
-    // 拖拽功能
-    this.setupWindowDrag(window);
-
-    // 最小化按钮
-    const minimizeBtn = window.querySelector('.minimize-button');
-    if (minimizeBtn) {
-      minimizeBtn.addEventListener('click', () => {
-        window.classList.toggle('minimized');
-      });
-    }
-
-    // 最大化按钮
-    const maximizeBtn = window.querySelector('.maximize-button');
-    if (maximizeBtn) {
-      maximizeBtn.addEventListener('click', () => {
-        window.classList.toggle('maximized');
-        this.saveWindowState(window.getAttribute('data-id') || '');
-      });
-    }
-
-    // 关闭按钮
-    const closeBtn = window.querySelector('.close-button');
-    if (closeBtn) {
-      closeBtn.addEventListener('click', () => {
-        this.closeWindow(window.getAttribute('data-id') || '');
-      });
-    }
-  }
-
-  // 设置窗口拖拽
-  private setupWindowDrag(window: HTMLElement) {
-    const header = window.querySelector('.window-header');
-    if (!header) return;
-
-    let isDragging = false;
-    let initialX: number;
-    let initialY: number;
-
-    const handleMouseDown = (e: Event) => {
-      const mouseEvent = e as MouseEvent;
-      isDragging = true;
-      initialX = mouseEvent.clientX - window.offsetLeft;
-      initialY = mouseEvent.clientY - window.offsetTop;
-      
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    };
-
-    const handleMouseMove = (e: Event) => {
-      if (!isDragging) return;
-      
-      const mouseEvent = e as MouseEvent;
-      e.preventDefault();
-      const currentX = mouseEvent.clientX - initialX;
-      const currentY = mouseEvent.clientY - initialY;
-      
-      window.style.left = `${currentX}px`;
-      window.style.top = `${currentY}px`;
-    };
-
-    const handleMouseUp = () => {
-      isDragging = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    header.addEventListener('mousedown', handleMouseDown);
-  }
-
   // 关闭窗口
   closeWindow(windowId: string) {
-    const window = this.windows.get(windowId);
+    const window = this.windows.find(w => w.id === windowId);
     if (window) {
       // 保存窗口状态
       this.saveWindowState(windowId);
@@ -278,27 +199,37 @@ export class MDIContainer {
         this.saveLastOpenedWindows();
       }
       
-      // 移除窗口元素并清理状态
+      // 如果当前正在移动这个窗口，停止移动
+      if (this.sharedMover.getAttribute('target') === `#${windowId}`) {
+        this.sharedMover.removeAttribute('target');
+        (this.sharedMover as any).stopMove();
+      }
+      
+      // 修改移除窗口的方式
       window.remove();
-      this.windows.delete(windowId);
+      this.windows = this.windows.filter(w => w.id !== windowId);
       this.windowStates.delete(windowId);
     }
   }
 
   // 保存窗口状态
   private saveWindowState(windowId: string) {
-    const window = this.windows.get(windowId);
+    const window = this.windows.find(w => w.id === windowId);
     if (window) {
+      const position = {
+        x: window.offsetLeft,
+        y: window.offsetTop
+      };
+      const size = {
+        width: window.offsetWidth,
+        height: window.offsetHeight
+      };
+      const isMaximized = window.classList.contains('maximized');
+
       this.windowStates.set(windowId, {
-        position: { 
-          x: window.offsetLeft, 
-          y: window.offsetTop 
-        },
-        size: { 
-          width: window.offsetWidth, 
-          height: window.offsetHeight 
-        },
-        isMaximized: window.classList.contains('maximized')
+        position,
+        size,
+        isMaximized
       });
     }
   }
@@ -336,9 +267,76 @@ export class MDIContainer {
 
   // 清除所有窗口
   clearWindows() {
-    this.container.innerHTML = '';
-    this.windows.clear();
+    this.windows.forEach(window => window.remove());
+    this.windows = [];
     this.windowStates.clear();
-    this.maxZIndex = 0;  // 重置最大 z-index
+    this.maxZIndex = 0;
+    this.lastOpenedWindows = [];
   }
-} 
+
+  // 层叠排列窗口
+  private arrangeWindowsCascade() {
+    const offset = 30; // 每个窗口的偏移量
+    const startX = 50;
+    const startY = 50;
+    
+    this.windows.forEach((window, index) => {
+      const x = startX + (index * offset);
+      const y = startY + (index * offset);
+      
+      window.setPosition(x, y);
+      window.setZIndex(1000 + index);
+      
+      // 如果窗口被最小化，恢复它
+      if ((window as any).isMinimized) {
+        window.minimize();
+      }
+      // 如果窗口被最大化，恢复它
+      if ((window as any).isMaximized) {
+        window.maximize();
+      }
+    });
+    
+    this.lastArrangement = 'cascade';
+  }
+
+  // 并排排列窗口
+  private arrangeWindowsTile() {
+    const windows = this.windows.filter(w => !(w as any).isMinimized);
+    if (windows.length === 0) return;
+
+    const containerWidth = this.clientWidth;
+    const containerHeight = this.clientHeight;
+    
+    // 计算最佳的行数和列数
+    const count = windows.length;
+    const cols = Math.ceil(Math.sqrt(count));
+    const rows = Math.ceil(count / cols);
+    
+    // 计算每个窗口的大小
+    const width = Math.floor(containerWidth / cols);
+    const height = Math.floor(containerHeight / rows);
+    
+    windows.forEach((window, index) => {
+      const row = Math.floor(index / cols);
+      const col = index % cols;
+      
+      const x = col * width;
+      const y = row * height;
+      
+      // 如果窗口被最大化，恢复它
+      if ((window as any).isMaximized) {
+        window.maximize();
+      }
+      
+      window.setPosition(x, y);
+      window.setSize(width, height);
+      window.setZIndex(1000);
+    });
+    
+    this.lastArrangement = 'tile';
+  }
+}
+
+// 注册自定义元素
+customElements.define('mdi-container', MDIContainer); 
