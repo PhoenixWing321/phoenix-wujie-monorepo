@@ -21,6 +21,23 @@
       padding: 20px;
       border-radius: 8px;
       margin-right: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+    }
+
+    .add-button {
+      padding: 10px;
+      background-color: #4CAF50;
+      color: white;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      transition: background-color 0.3s;
+    }
+
+    .add-button:hover {
+      background-color: #45a049;
     }
 
     .container {
@@ -33,10 +50,9 @@
       padding: 20px;
       box-sizing: border-box;
       overflow: hidden;
-      min-height: 400px;
     }
 
-    .middle-area {
+    .mask-area {
       position: relative;
       flex: 1;
       margin: 10px 0;
@@ -50,10 +66,9 @@
         linear-gradient(-45deg, transparent 75%, #f0f0f0 75%);
       background-size: 20px 20px;
       background-position: 0 0, 0 10px, 10px -10px, -10px 0px;
-      min-height: 300px;
     }
 
-    #target-element {
+    #target-element, .movable-element {
       position: absolute;
       width: 100px;
       height: 100px;
@@ -67,8 +82,10 @@
       border-radius: 4px;
       box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
       transition: all 0.3s;
-      left: 50px;
-      top: 50px;
+    }
+
+    .movable-element {
+      background-color: #2196F3;
     }
 
     .title,
@@ -82,20 +99,90 @@
 </head>
 
 <body>
-  <div class="left">Left</div>
+  <div class="left">
+    <button class="add-button" onclick="addNewElement()">添加新元素</button>
+  </div>
   <div class="container">
     <div class="title">title</div>
-    <div class="middle-area" id="middle-area">
-      <div id="target-element">拖动这里</div>
+    <div class="mask-area" id="middle-area">
+      <div id="target-element" style="z-index: 1">拖动这里</div>
     </div>
     <div class="footer">footer</div>
   </div>
-  <!-- 使用自定义元素 -->
-  <mover-component target="#target-element" mask="#middle-area"></mover-component>
+
+  <!-- 创建一个共用的mover-component，设置初始target -->
+  <mover-component id="shared-mover" mask="#middle-area" target="#target-element"></mover-component>
 
   <script type="module">
     // 导入 Web Component
     import '../src/components/MoverComponent.js';
+
+    // 获取共用的mover组件
+    const sharedMover = document.getElementById('shared-mover');
+ 
+    let zMax = 1;  // 添加全局z-index计数器
+
+    // 创建移动控制器函数
+    function appendMoveController(element) {
+      // 确保元素有初始z-index
+      if (!element.style.zIndex) {
+        zMax++;
+        element.style.zIndex = zMax;
+      }
+      
+      element.addEventListener('mousedown', function(e) { 
+        // 如果z-index<zMax，则更新zMax
+        if (element.style.zIndex < zMax) {
+            element.style.zIndex = zMax +1; 
+            zMax++;
+        }  
+        
+        // 设置当前目标
+        sharedMover.setAttribute('target', `#${element.id}`);
+        // 调用初始化方法并传入原始事件
+        sharedMover.initializeMove(e);
+      });
+    }
+
+    // 为原始target-element添加移动控制
+    const targetElement = document.getElementById('target-element');
+    appendMoveController(targetElement);
+
+    let elementCount = 0;
+    window.addNewElement = () => {
+      const middleArea = document.getElementById('middle-area');
+      const element = document.createElement('div');
+      elementCount++;
+      
+      element.className = 'movable-element';
+      element.textContent = `元素 ${elementCount}`;
+
+      // 计算错开的位置
+      const offset = 20;  // 每个元素错开的距离
+      const baseLeft = 20;  // 基础左边距
+      const baseTop = 20;   // 基础上边距
+      const maxPerRow = 5;  // 每行最多放置的元素数量
+
+      // 计算当前元素应该在第几行第几列
+      const row = Math.floor((elementCount - 1) / maxPerRow);
+      const col = (elementCount - 1) % maxPerRow;
+
+      element.style.left = `${baseLeft + col * (offset + 100)}px`;  // 100是元素宽度
+      element.style.top = `${baseTop + row * (offset + 100)}px`;    // 100是元素高度
+      element.id = `movable-${Date.now()}`; 
+
+      // 为新元素添加移动控制
+      appendMoveController(element);
+      
+      // 添加元素到DOM
+      middleArea.appendChild(element);
+    };
+
+    // 在mouseup时清除target
+    document.addEventListener('mouseup', () => {
+      sharedMover.removeAttribute('target');
+      sharedMover.stopMove();
+    });
   </script>
 </body>
 

@@ -41,6 +41,33 @@ class MoverComponent extends HTMLElement {
         shadow.appendChild(this.mask);  // 将遮罩添加到Shadow DOM
     }
 
+    // 监听属性变化
+    static get observedAttributes() {
+        return ['target', 'mask'];
+    }
+
+    attributeChangedCallback(name: string, oldValue: string, newValue: string) {
+        if (oldValue === newValue) return;
+
+        if (name === 'target') {
+            // 更新目标元素
+            if (this.target) {
+                this.target.removeEventListener('mousedown', this.handleMouseDown);
+                if (!newValue) {
+                    // 如果是移除target，调用stopMove
+                    this.stopMove();
+                }
+            }
+            this.target = newValue ? document.querySelector(newValue) : null;
+        } else if (name === 'mask') {
+            // 更新遮罩区域
+            this.maskElement = newValue ? document.querySelector(newValue) : null;
+            if (this.maskElement) {
+                this.maskRect = this.maskElement.getBoundingClientRect();
+            }
+        }
+    }
+
     // 当组件被添加到 DOM 时调用
     connectedCallback() {
         // 获取传入的属性
@@ -63,21 +90,6 @@ class MoverComponent extends HTMLElement {
                 
                 // 更新遮罩尺寸和位置
                 this.updateMaskPosition();
-                
-                // 添加日志
-                console.log('遮罩区域尺寸:', {
-                    width: this.maskElement.offsetWidth,
-                    height: this.maskElement.offsetHeight,
-                    boundingRect: this.maskElement.getBoundingClientRect()
-                });
-                
-                console.log('遮罩元素尺寸:', {
-                    width: this.mask.offsetWidth,
-                    height: this.mask.offsetHeight,
-                    boundingRect: this.mask.getBoundingClientRect(),
-                    computedStyle: window.getComputedStyle(this.mask)
-                });
-
                 // 监听窗口大小变化
                 window.addEventListener('resize', this.updateMaskPosition);
             }
@@ -169,14 +181,6 @@ class MoverComponent extends HTMLElement {
             this.mask.style.display = 'block';
             this.mask.classList.add('dragging');
 
-            // 再次检查遮罩尺寸
-            console.log('拖动时遮罩尺寸:', {
-                width: this.mask.offsetWidth,
-                height: this.mask.offsetHeight,
-                display: this.mask.style.display,
-                boundingRect: this.mask.getBoundingClientRect()
-            });
-
             // 设置指示器的初始位置为目标元素的位置
             this.indicator.style.left = `${rect.left}px`;
             this.indicator.style.top = `${rect.top}px`;
@@ -233,14 +237,6 @@ class MoverComponent extends HTMLElement {
     private handleMouseUp = (e: MouseEvent | null) => {
         if (!this.isDragging) return;
 
-        this.isDragging = false;
-
-        // 清除检查定时器
-        if (this.checkInterval) {
-            window.clearInterval(this.checkInterval);
-            this.checkInterval = null;
-        }
-
         // 计算最终的相对移动距离
         if (this.target) {
             const deltaX = this.lastMouseX - this.startMouseX;
@@ -258,15 +254,75 @@ class MoverComponent extends HTMLElement {
                 this.target.style.left = `${newPos.x}px`;
                 this.target.style.top = `${newPos.y}px`;
             }
-
-            // 移除拖动状态 
-            this.indicator.classList.remove('dragging');
-            this.mask.classList.remove('dragging');
-            
-            // 隐藏遮罩
-            this.mask.style.display = 'none';
         }
+
+        // 调用stopMove来清理状态
+        this.stopMove();
     };
+
+    // 新增：初始化移动的方法
+    public initializeMove(e: MouseEvent) {
+        if (!this.target || this.isDragging) return;
+        
+        e.preventDefault();
+        this.isDragging = true;
+
+        const rect = this.target.getBoundingClientRect();
+        const relativePos = this.getRelativePosition(this.target);
+
+        // 记录起始位置
+        this.startMouseX = e.clientX;
+        this.startMouseY = e.clientY;
+        this.lastMouseX = e.clientX;
+        this.lastMouseY = e.clientY;
+
+        // 记录元素起始位置
+        this.startElementX = relativePos.left;
+        this.startElementY = relativePos.top;
+
+        // 添加拖动状态
+        this.target.classList.add('dragging');
+        this.indicator.classList.add('dragging');
+
+        // 显示并更新遮罩
+        this.updateMaskPosition();
+        this.mask.style.display = 'block';
+        this.mask.classList.add('dragging');
+
+        // 设置指示器位置
+        this.indicator.style.left = `${rect.left}px`;
+        this.indicator.style.top = `${rect.top}px`;
+        this.indicator.style.width = `${rect.width}px`;
+        this.indicator.style.height = `${rect.height}px`;
+
+        // 开始检查鼠标状态
+        this.startMouseCheck();
+    }
+
+    // 新增：停止移动的方法
+    public stopMove() {
+        if (this.target) {
+            this.target.classList.remove('dragging');
+        }
+        this.isDragging = false;
+        this.indicator.classList.remove('dragging');
+        this.mask.classList.remove('dragging');
+        this.mask.style.display = 'none';
+
+        // 清除检查定时器
+        if (this.checkInterval) {
+            window.clearInterval(this.checkInterval);
+            this.checkInterval = null;
+        }
+
+        // 重置所有状态
+        this.startMouseX = 0;
+        this.startMouseY = 0;
+        this.lastMouseX = 0;
+        this.lastMouseY = 0;
+        this.startElementX = 0;
+        this.startElementY = 0;
+    }
 }
 
 // 注册自定义元素
