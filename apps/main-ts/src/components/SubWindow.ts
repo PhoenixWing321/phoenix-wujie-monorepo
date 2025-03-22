@@ -13,6 +13,8 @@ interface SubWindowProps {
   onFocus?: () => void;
   onDragStart?: () => void;
   onDragEnd?: (position: { x: number; y: number }) => void;
+  onResizeStart?: (handle: string) => void;
+  onResizeEnd?: (size: { width: number; height: number }) => void;
 }
 
 export class SubWindow {
@@ -22,6 +24,7 @@ export class SubWindow {
   private isMinimized = false;
   private originalSize?: { width: number; height: number };
   private originalPosition?: { x: number; y: number };
+  private resizeHandles: HTMLElement[] = [];
 
   constructor(private props: SubWindowProps) {
     this.element = document.createElement('div');
@@ -60,6 +63,19 @@ export class SubWindow {
         <iframe src="${this.props.url}" frameborder="0"></iframe>
       </div>
     `;
+
+    // 添加调整大小的指示器
+    const handles = [
+      'north', 'south', 'east', 'west',
+      'northwest', 'northeast', 'southwest', 'southeast'
+    ];
+
+    handles.forEach(handle => {
+      const handleElement = document.createElement('div');
+      handleElement.className = `window-resize-handle ${handle}`;
+      this.element.appendChild(handleElement);
+      this.resizeHandles.push(handleElement);
+    });
   }
 
   private setupEventListeners() {
@@ -84,10 +100,17 @@ export class SubWindow {
         const mouseEvent = e as MouseEvent;
         const target = mouseEvent.target as HTMLElement;
         if (target.closest('.window-controls')) return;
-        
-        // 移除这里的 onDragStart 触发，让 MDIContainer 直接处理拖拽
       });
     }
+
+    // 调整大小指示器事件
+    this.resizeHandles.forEach(handle => {
+      handle.addEventListener('mousedown', (e: Event) => {
+        const mouseEvent = e as MouseEvent;
+        const handleType = handle.classList[1]; // 获取指示器类型（north, south 等）
+        this.props.onResizeStart?.(handleType);
+      });
+    });
   }
 
   // 窗口控制方法
@@ -169,6 +192,19 @@ export class SubWindow {
     return {
       width: this.element.offsetWidth,
       height: this.element.offsetHeight
+    };
+  }
+
+  // 获取调整大小的指示器元素
+  getResizeHandles(): HTMLElement[] {
+    return this.resizeHandles;
+  }
+
+  // 获取最小尺寸
+  getMinSize(): { width: number; height: number } {
+    return {
+      width: 200,
+      height: 150
     };
   }
 } 

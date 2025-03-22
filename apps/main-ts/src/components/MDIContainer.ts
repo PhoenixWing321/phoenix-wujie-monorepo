@@ -1,5 +1,5 @@
 import './MDIContainer.css';
-import { SubWindow } from './SubWindow';
+import './WindowComponent';
 
 // 窗口配置接口
 interface WindowConfig {
@@ -25,7 +25,7 @@ interface WindowState {
 
 export class MDIContainer {
   private container: HTMLElement;
-  private windows: Map<string, SubWindow> = new Map();
+  private windows: Map<string, HTMLElement> = new Map();
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
   private maxZIndex: number = 0;
@@ -57,12 +57,12 @@ export class MDIContainer {
   private activateWindow(windowId: string) {
     const window = this.windows.get(windowId);
     if (window) {
-      const currentZIndex = parseInt(window.getElement().style.zIndex) || 0;
+      const currentZIndex = parseInt(window.style.zIndex) || 0;
       
       // 如果当前窗口不是最上层，则将其提升到最上层
       if (currentZIndex < this.maxZIndex) {
         this.maxZIndex++;
-        window.setZIndex(this.maxZIndex);
+        window.style.zIndex = this.maxZIndex.toString();
       }
 
       // 如果 z-index 超过阈值，重新整理所有窗口的 z-index
@@ -76,13 +76,13 @@ export class MDIContainer {
   private reorganizeZIndices() {
     const sortedWindows = Array.from(this.windows.entries())
       .sort((a, b) => {
-        const aIndex = parseInt(a[1].getElement().style.zIndex) || 0;
-        const bIndex = parseInt(b[1].getElement().style.zIndex) || 0;
+        const aIndex = parseInt(a[1].style.zIndex) || 0;
+        const bIndex = parseInt(b[1].style.zIndex) || 0;
         return aIndex - bIndex;
       });
 
     sortedWindows.forEach((entry, index) => {
-      entry[1].setZIndex(index + 1);
+      entry[1].style.zIndex = (index + 1).toString();
     });
 
     this.maxZIndex = sortedWindows.length;
@@ -92,7 +92,7 @@ export class MDIContainer {
   addWindow(config: WindowConfig) {
     // 检查是否已存在相同URL的窗口
     const existingWindow = Array.from(this.windows.entries())
-      .find(([_, win]) => win.getElement().getAttribute('data-url') === config.url);
+      .find(([_, win]) => win.getAttribute('data-url') === config.url);
     
     if (existingWindow) {
       // 如果存在，激活该窗口
@@ -101,27 +101,33 @@ export class MDIContainer {
     }
 
     // 创建新窗口
-    const window = new SubWindow({
-      ...config,
-      zIndex: ++this.maxZIndex,
-      onClose: () => this.closeWindow(config.id),
-      onFocus: () => this.activateWindow(config.id),
-      position: config.position || {
-        x: 20 + this.windows.size * 20,
-        y: 20 + this.windows.size * 20
-      },
-      size: config.size || {
-        width: 800,
-        height: 600
-      }
+    const windowElement = document.createElement('window-component');
+    windowElement.setAttribute('id', config.id);
+    windowElement.setAttribute('title', config.title);
+    windowElement.setAttribute('url', config.url);
+    windowElement.setAttribute('data-url', config.url);
+    
+    if (config.position) {
+      windowElement.setAttribute('position', JSON.stringify(config.position));
+    }
+    if (config.size) {
+      windowElement.setAttribute('size', JSON.stringify(config.size));
+    }
+    windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
+
+    // 添加事件监听器
+    windowElement.addEventListener('focus', () => this.activateWindow(config.id));
+    windowElement.addEventListener('close', () => this.closeWindow(config.id));
+    windowElement.addEventListener('minimize', () => {
+      // 处理最小化事件
+    });
+    windowElement.addEventListener('maximize', () => {
+      // 处理最大化事件
     });
 
     // 添加到容器
-    this.container.appendChild(window.getElement());
-    this.windows.set(config.id, window);
-    
-    // 设置拖拽
-    this.setupWindowDrag(window);
+    this.container.appendChild(windowElement);
+    this.windows.set(config.id, windowElement);
     
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
@@ -133,155 +139,6 @@ export class MDIContainer {
     return config.id;
   }
 
-  // 设置窗口拖拽
-  private setupWindowDrag(window: SubWindow) {
-    const header = window.getElement().querySelector('.window-header') as HTMLElement;
-    if (!header) return;
-
-    let isDragging = false;
-    let initialX: number;
-    let initialY: number;
-    let dragPreview: HTMLElement | null = null;
-    let overlay: HTMLElement | null = null;
-
-    const createDragElements = () => {
-      // 创建遮罩层
-      overlay = document.createElement('div');
-      overlay.className = 'window-drag-overlay';
-      this.container.appendChild(overlay);
-
-      // 添加拖拽状态类
-      this.container.classList.add('window-dragging');
-      window.getElement().classList.add('dragging');
-
-      // 创建拖动预览
-      dragPreview = document.createElement('div');
-      dragPreview.className = 'window-drag-preview';
-      // 复制窗口的大小和位置
-      const rect = window.getElement().getBoundingClientRect();
-      const containerRect = this.container.getBoundingClientRect();
-      dragPreview.style.width = `${rect.width}px`;
-      dragPreview.style.height = `${rect.height}px`;
-      dragPreview.style.left = `${rect.left - containerRect.left}px`;
-      dragPreview.style.top = `${rect.top - containerRect.top}px`;
-      this.container.appendChild(dragPreview);
-    };
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!isDragging || !dragPreview) return;
-      
-      e.preventDefault();
-      
-      // 计算新位置（相对于容器）
-      const containerRect = this.container.getBoundingClientRect();
-      let currentX = e.clientX - containerRect.left - initialX;
-      let currentY = e.clientY - containerRect.top - initialY;
-
-      // 获取容器和预览框的尺寸
-      const containerWidth = containerRect.width;
-      const containerHeight = containerRect.height;
-      const previewWidth = dragPreview.offsetWidth;
-      const headerHeight = header.offsetHeight;
-      
-      // 边界检查
-      // 左边界：不能完全移出左侧（至少保留100px宽度）
-      currentX = Math.max(currentX, -previewWidth + 100);
-      // 右边界：不能完全移出右侧（至少保留100px宽度）
-      currentX = Math.min(currentX, containerWidth - 100);
-      // 上边界：不能移出顶部
-      currentY = Math.max(currentY, 0);
-      // 下边界：不能完全移出底部（至少保留标题栏高度）
-      currentY = Math.min(currentY, containerHeight - headerHeight);
-      
-      // 更新预览框的位置
-      dragPreview.style.left = `${currentX}px`;
-      dragPreview.style.top = `${currentY}px`;
-    };
-
-    const removeDragElements = () => {
-      if (overlay) {
-        overlay.remove();
-        overlay = null;
-      }
-      // 移除拖拽状态类
-      this.container.classList.remove('window-dragging');
-      window.getElement().classList.remove('dragging');
-
-      if (dragPreview) {
-        // 获取预览框相对于容器的位置
-        let finalLeft = parseFloat(dragPreview.style.left);
-        let finalTop = parseFloat(dragPreview.style.top);
-        
-        // 获取容器和窗口的尺寸
-        const containerRect = this.container.getBoundingClientRect();
-        const windowWidth = window.getElement().offsetWidth;
-        const headerHeight = header.offsetHeight;
-        
-        // 最终位置的边界检查
-        // 左边界：不能完全移出左侧（至少保留100px宽度）
-        finalLeft = Math.max(finalLeft, -windowWidth + 100);
-        // 右边界：不能完全移出右侧（至少保留100px宽度）
-        finalLeft = Math.min(finalLeft, containerRect.width - 100);
-        // 上边界：不能移出顶部
-        finalTop = Math.max(finalTop, 0);
-        // 下边界：不能完全移出底部（至少保留标题栏高度）
-        finalTop = Math.min(finalTop, containerRect.height - headerHeight);
-        
-        // 移除预览框
-        dragPreview.remove();
-        dragPreview = null;
-
-        // 设置窗口到最终位置（带动画）
-        window.getElement().style.transition = 'left 0.15s, top 0.15s';
-        window.getElement().style.left = `${finalLeft}px`;
-        window.getElement().style.top = `${finalTop}px`;
-        
-        // 动画结束后移除过渡效果
-        setTimeout(() => {
-          window.getElement().style.transition = '';
-        }, 150);
-      }
-    };
-
-    const handleMouseDown = (e: MouseEvent) => {
-      const target = e.target as HTMLElement;
-      
-      // 只有点击标题区域（不包括控制按钮）时才启动拖拽
-      const isClickOnTitle = target.classList.contains('window-header') || 
-                           target.classList.contains('window-title') ||
-                           (target === header && !target.closest('.window-controls'));
-      
-      if (!isClickOnTitle) {
-        return;
-      }
-
-      // 立即开始拖拽
-      isDragging = true;
-      const rect = window.getElement().getBoundingClientRect();
-      initialX = e.clientX - rect.left;
-      initialY = e.clientY - rect.top;
-      
-      // 创建拖拽元素
-      createDragElements();
-      
-      // 立即添加事件监听器
-      document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
-    };
-
-    const handleMouseUp = () => {
-      if (isDragging) {
-        removeDragElements();
-        isDragging = false;
-      }
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    // 添加鼠标按下事件监听器
-    header.addEventListener('mousedown', handleMouseDown);
-  }
-
   // 关闭窗口
   closeWindow(windowId: string) {
     const window = this.windows.get(windowId);
@@ -290,14 +147,14 @@ export class MDIContainer {
       this.saveWindowState(windowId);
       
       // 从lastOpenedWindows中移除
-      const url = window.getElement().getAttribute('data-url');
+      const url = window.getAttribute('data-url');
       if (url) {
         this.lastOpenedWindows = this.lastOpenedWindows.filter(w => w.url !== url);
         this.saveLastOpenedWindows();
       }
       
       // 移除窗口元素并清理状态
-      window.getElement().remove();
+      window.remove();
       this.windows.delete(windowId);
       this.windowStates.delete(windowId);
     }
@@ -307,9 +164,15 @@ export class MDIContainer {
   private saveWindowState(windowId: string) {
     const window = this.windows.get(windowId);
     if (window) {
-      const position = window.getPosition();
-      const size = window.getSize();
-      const isMaximized = window.getElement().classList.contains('maximized');
+      const position = {
+        x: window.offsetLeft,
+        y: window.offsetTop
+      };
+      const size = {
+        width: window.offsetWidth,
+        height: window.offsetHeight
+      };
+      const isMaximized = window.classList.contains('maximized');
 
       this.windowStates.set(windowId, {
         position,
@@ -352,7 +215,7 @@ export class MDIContainer {
 
   // 清除所有窗口
   clearWindows() {
-    this.windows.forEach(window => window.getElement().remove());
+    this.windows.forEach(window => window.remove());
     this.windows.clear();
     this.windowStates.clear();
     this.maxZIndex = 0;

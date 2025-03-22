@@ -97,4 +97,80 @@
   position: absolute;
   top: 0;
   left: 0;
+}
+
+/* 调整大小指示器样式 */
+.window-resize-handle {
+  position: absolute;
+  background-color: transparent;
+  z-index: 1000;
+}
+
+/* 边线指示器 */
+.window-resize-handle.north,
+.window-resize-handle.south {
+  height: 4px;
+  width: 100%;
+  cursor: ns-resize;
+}
+
+.window-resize-handle.east,
+.window-resize-handle.west {
+  width: 4px;
+  height: 100%;
+  cursor: ew-resize;
+}
+
+/* 角落指示器 */
+.window-resize-handle.northwest,
+.window-resize-handle.northeast,
+.window-resize-handle.southwest,
+.window-resize-handle.southeast {
+  width: 8px;
+  height: 8px;
+}
+
+.window-resize-handle.northwest {
+  top: -4px;
+  left: -4px;
+  cursor: nw-resize;
+}
+
+.window-resize-handle.northeast {
+  top: -4px;
+  right: -4px;
+  cursor: ne-resize;
+}
+
+.window-resize-handle.southwest {
+  bottom: -4px;
+  left: -4px;
+  cursor: sw-resize;
+}
+
+.window-resize-handle.southeast {
+  bottom: -4px;
+  right: -4px;
+  cursor: se-resize;
+}
+
+/* 调整大小时的预览框 */
+.window-resize-preview {
+  position: absolute;
+  background-color: rgba(255, 255, 255, 0.8);
+  border: 1px dashed #666;
+  pointer-events: none;
+  z-index: 999999;
+}
+
+/* 调整大小时的遮罩层 */
+.window-resize-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);
+  z-index: 999998;
+  pointer-events: none;
 } 
