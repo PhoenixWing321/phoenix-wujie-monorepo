@@ -110,16 +110,15 @@
     <div class="footer">footer</div>
   </div>
 
-  <!-- 创建一个共用的mover-component，设置初始target -->
-  <mover-component id="shared-mover" mask="#middle-area" target="#target-element"></mover-component>
-
   <script type="module">
-    // 导入 Web Component
-    import '../src/components/MoverComponent.js';
+    import { MoverComponent } from '../src/components/MoverComponent.js';
 
-    // 获取共用的mover组件
-    const sharedMover = document.getElementById('shared-mover');
- 
+    // 创建共享的 mover-component
+    const sharedMover = new MoverComponent();
+    sharedMover.setAttribute('mask', '#middle-area');
+    const container = document.getElementById('middle-area');
+    document.body.appendChild(sharedMover); 
+  
     let zMax = 1;  // 添加全局z-index计数器
 
     // 创建移动控制器函数

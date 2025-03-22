@@ -73,7 +73,8 @@ const toggleToolbar = () => {
 };
 
 // 创建MDI容器实例
-const mdiContainer = new MDIContainer('windowsContainer');
+const mdiContainer = new MDIContainer();
+document.getElementById('windowsContainer')?.appendChild(mdiContainer);
 
 // 添加窗口功能
 const addWindow = () => {

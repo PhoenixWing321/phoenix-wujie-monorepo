@@ -1,4 +1,4 @@
-class MoverComponent extends HTMLElement {
+export class MoverComponent extends HTMLElement {
     private target: HTMLElement | null = null;
     private maskElement: HTMLElement | null = null;
     private isDragging: boolean = false;
