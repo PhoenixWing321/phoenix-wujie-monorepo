@@ -8,6 +8,9 @@
     "build": "tsc && vite build",
     "preview": "vite preview"
   },
+  "dependencies": {
+    "@phoenix-wujie-monorepo/ui": "workspace:*"
+  },
   "devDependencies": {
     "typescript": "~5.7.2",
     "vite": "^6.2.0"

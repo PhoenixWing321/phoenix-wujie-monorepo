@@ -1,7 +1,14 @@
 import './style.css';
 import { MDIContainer } from './components/MDIContainer';
-import { Resizer } from './components/Resizer';
 import './components/WindowComponent';  // 确保 WindowComponent 被注册
+import './components/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
+
+// 定义 PhoenixResizerCmp 的类型
+declare global {
+  interface HTMLElementTagNameMap {
+    'phoenix-resizer': any;  // 暂时使用 any 类型，因为组件已经在文件中注册
+  }
+}
 
 document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
   <div class="app-container">
@@ -20,7 +27,7 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
         </div>
       </div>
     </div>
-    <div class="resizer"></div>
+    <phoenix-resizer target=".toolbar"></phoenix-resizer>
     <div class="windows-container" id="windowsContainer">
       <!-- 子窗口将在这里动态添加 -->
     </div>
@@ -33,12 +40,13 @@ const COLLAPSED_MIN_WIDTH = 75;  // 收缩状态的最小宽度
 const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 200;
 
-// 创建Resizer实例
-const toolbarResizer = new Resizer('.resizer', '.toolbar', {
-  minWidth: MIN_WIDTH,
-  maxWidth: MAX_WIDTH,
-  defaultWidth: DEFAULT_WIDTH,
-  onResize: (width: number) => {
+// 获取 Resizer 实例
+const toolbarResizer = document.querySelector('phoenix-resizer') as any;
+if (toolbarResizer) {
+  toolbarResizer.setMinWidth(MIN_WIDTH);
+  toolbarResizer.setMaxWidth(MAX_WIDTH);
+  toolbarResizer.setWidth(DEFAULT_WIDTH);
+  toolbarResizer.setOnResize((width: number) => {
     const toolbar = document.querySelector('.toolbar') as HTMLElement;
     if (toolbar) {
       // 如果宽度大于最小宽度，自动切换到展开状态
@@ -50,8 +58,8 @@ const toolbarResizer = new Resizer('.resizer', '.toolbar', {
         toolbar.classList.add('collapsed');
       }
     }
-  }
-});
+  });
+}
 
 // 添加工具栏展开/缩小功能
 const toggleToolbar = () => {

@@ -2,11 +2,16 @@
   "name": "@phoenix-wujie-monorepo/ui",
   "version": "0.1.0",
   "private": true,
-  "main": "dist/index.js",
+  "main": "dist/index.umd.js",
+  "module": "dist/index.es.js",
   "types": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
   "scripts": {
-    "build": "vue-tsc --noEmit && tsc",
-    "dev": "vue-tsc --noEmit --watch"
+    "build": "vue-tsc --noEmit && vite build",
+    "dev": "vite",
+    "preview": "vite preview"
   },
   "dependencies": {
     "vue": "^3.5.13"
@@ -16,6 +21,7 @@
     "@types/node": "^20.0.0",
     "@vitejs/plugin-vue": "^5.0.0",
     "@vitejs/plugin-vue-jsx": "^3.1.0",
-    "vue-tsc": "^1.8.27"
+    "vue-tsc": "^1.8.27",
+    "vite": "^6.2.0"
   }
 } 

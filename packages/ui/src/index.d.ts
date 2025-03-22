@@ -6,4 +6,18 @@ declare module '@phoenix-wujie-monorepo/ui' {
     disabled?: boolean;
     type?: 'primary' | 'secondary' | 'default';
   }>;
+}
+
+export class PhoenixResizerCmp extends HTMLElement {
+  setWidth(width: number): number;
+  setMinWidth(width: number): void;
+  setMaxWidth(width: number): void;
+  setOnResize(callback: (width: number) => void): void;
+  updateIndicatorPosition(left: number): void;
+}
+
+declare global {
+  interface HTMLElementTagNameMap {
+    'phoenix-resizer': PhoenixResizerCmp;
+  }
 } 
