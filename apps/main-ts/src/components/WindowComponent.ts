@@ -12,7 +12,6 @@ interface WindowComponentProps {
 export class WindowComponent extends HTMLElement {
   private shadow: ShadowRoot;
   private element: HTMLElement;
-  private isDragging = false;
   private isMaximized = false;
   private isMinimized = false;
   private originalSize?: { width: number; height: number };
@@ -56,21 +55,21 @@ export class WindowComponent extends HTMLElement {
       case 'position':
         this.props.position = newValue ? JSON.parse(newValue) : undefined;
         if (this.props.position) {
-          this.element.style.left = `${this.props.position.x}px`;
-          this.element.style.top = `${this.props.position.y}px`;
+          this.style.left = `${this.props.position.x}px`;
+          this.style.top = `${this.props.position.y}px`;
         }
         break;
       case 'size':
         this.props.size = newValue ? JSON.parse(newValue) : undefined;
         if (this.props.size) {
-          this.element.style.width = `${this.props.size.width}px`;
-          this.element.style.height = `${this.props.size.height}px`;
+          this.style.width = `${this.props.size.width}px`;
+          this.style.height = `${this.props.size.height}px`;
         }
         break;
       case 'z-index':
         this.props.zIndex = newValue ? parseInt(newValue) : undefined;
         if (this.props.zIndex !== undefined) {
-          this.element.style.zIndex = this.props.zIndex.toString();
+          this.style.zIndex = this.props.zIndex.toString();
         }
         break;
     }
@@ -291,19 +290,6 @@ export class WindowComponent extends HTMLElement {
       this.resizeHandles.push(handleElement);
     });
 
-    // 设置初始位置和大小
-    if (this.props.position) {
-      this.element.style.left = `${this.props.position.x}px`;
-      this.element.style.top = `${this.props.position.y}px`;
-    }
-    if (this.props.size) {
-      this.element.style.width = `${this.props.size.width}px`;
-      this.element.style.height = `${this.props.size.height}px`;
-    }
-    if (this.props.zIndex) {
-      this.element.style.zIndex = this.props.zIndex.toString();
-    }
-
     // 如果是第一次渲染，将元素添加到shadow DOM
     if (!this.shadow.contains(this.element)) {
       this.shadow.appendChild(this.element);
@@ -332,7 +318,11 @@ export class WindowComponent extends HTMLElement {
         const mouseEvent = e as MouseEvent;
         const target = mouseEvent.target as HTMLElement;
         if (target.closest('.window-controls')) return;
-        this.startDrag(mouseEvent);
+        
+        // 触发移动事件，让MoverComponent处理
+        this.dispatchEvent(new CustomEvent('movestart', {
+          detail: { mouseEvent }
+        }));
       });
     }
 
@@ -372,12 +362,12 @@ export class WindowComponent extends HTMLElement {
   maximize() {
     if (!this.isMaximized) {
       this.originalSize = {
-        width: this.element.offsetWidth,
-        height: this.element.offsetHeight
+        width: this.offsetWidth,
+        height: this.offsetHeight
       };
       this.originalPosition = {
-        x: this.element.offsetLeft,
-        y: this.element.offsetTop
+        x: this.offsetLeft,
+        y: this.offsetTop
       };
 
       this.isMaximized = true;
@@ -388,47 +378,16 @@ export class WindowComponent extends HTMLElement {
       this.element.classList.remove('maximized');
 
       if (this.originalSize && this.originalPosition) {
-        this.element.style.width = `${this.originalSize.width}px`;
-        this.element.style.height = `${this.originalSize.height}px`;
-        this.element.style.left = `${this.originalPosition.x}px`;
-        this.element.style.top = `${this.originalPosition.y}px`;
+        this.style.width = `${this.originalSize.width}px`;
+        this.style.height = `${this.originalSize.height}px`;
+        this.style.left = `${this.originalPosition.x}px`;
+        this.style.top = `${this.originalPosition.y}px`;
       }
     }
   }
 
   close() {
     this.dispatchEvent(new CustomEvent('close'));
-  }
-
-  // 拖拽相关方法
-  private startDrag(e: MouseEvent) {
-    if (this.isMaximized) return;
-    
-    this.isDragging = true;
-    const rect = this.element.getBoundingClientRect();
-    const startX = e.clientX - rect.left;
-    const startY = e.clientY - rect.top;
-
-    const handleMouseMove = (e: MouseEvent) => {
-      if (!this.isDragging) return;
-      
-      e.preventDefault();
-      
-      const newX = e.clientX - startX;
-      const newY = e.clientY - startY;
-
-      this.element.style.left = `${newX}px`;
-      this.element.style.top = `${newY}px`;
-    };
-
-    const handleMouseUp = () => {
-      this.isDragging = false;
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
   }
 
   // 调整大小相关方法
@@ -512,26 +471,26 @@ export class WindowComponent extends HTMLElement {
 
   setPosition(x: number, y: number) {
     if (!this.isMaximized) {
-      this.element.style.left = `${x}px`;
-      this.element.style.top = `${y}px`;
+      this.style.left = `${x}px`;
+      this.style.top = `${y}px`;
     }
   }
 
   setSize(width: number, height: number) {
     if (!this.isMaximized) {
-      this.element.style.width = `${width}px`;
-      this.element.style.height = `${height}px`;
+      this.style.width = `${width}px`;
+      this.style.height = `${height}px`;
     }
   }
 
   setZIndex(zIndex: number) {
-    this.element.style.zIndex = zIndex.toString();
+    this.style.zIndex = zIndex.toString();
   }
 
   getPosition() {
     return {
-      x: this.element.offsetLeft,
-      y: this.element.offsetTop
+      x: this.offsetLeft,
+      y: this.offsetTop
     };
   }
 

@@ -1,5 +1,7 @@
 import './MDIContainer.css';
 import './WindowComponent';
+import './MoverComponent';  // 导入 MoverComponent
+
 
 // 窗口配置接口
 interface WindowConfig {
@@ -30,6 +32,7 @@ export class MDIContainer {
   private lastOpenedWindows: WindowConfig[] = [];
   private maxZIndex: number = 0;
   private readonly Z_INDEX_THRESHOLD = 99999;
+  private sharedMover: HTMLElement;  // 添加共享的 mover-component
 
   constructor(containerId: string) {
     const container = document.getElementById(containerId);
@@ -38,6 +41,18 @@ export class MDIContainer {
     }
     this.container = container;
     this.loadLastOpenedWindows();
+
+    // 创建共享的 mover-component
+    this.sharedMover = document.createElement('mover-component');
+    this.sharedMover.id = 'shared-mover';
+    this.sharedMover.setAttribute('mask', `#${this.container.id}`);
+    this.container.appendChild(this.sharedMover);
+
+    // 添加全局 mouseup 事件监听器
+    document.addEventListener('mouseup', () => {
+      this.sharedMover.removeAttribute('target');
+      (this.sharedMover as any).stopMove();
+    });
   }
 
   // 加载上次打开的窗口记录
@@ -90,6 +105,7 @@ export class MDIContainer {
 
   // 添加新窗口
   addWindow(config: WindowConfig) {
+    console.log('addWindow', config);
     // 检查是否已存在相同URL的窗口
     const existingWindow = Array.from(this.windows.entries())
       .find(([_, win]) => win.getAttribute('data-url') === config.url);
@@ -100,18 +116,17 @@ export class MDIContainer {
       this.activateWindow(existingWindow[0]);
       return existingWindow[0];
     }
-    console.log('addWindow', config);
 
-    // 计算新窗口的位置
+    // 计算错开的位置
     const windowCount = this.windows.size;
     const offset = 30; // 每个窗口错开的距离
-    const defaultPosition = {
+    const position = config.position || {
       x: offset * (windowCount % 10), // 最多错开10个位置，然后重新开始
       y: offset * (windowCount % 10)
     };
 
     // 设置默认大小
-    const defaultSize = {
+    const size = config.size || {
       width: 800,
       height: 600
     };
@@ -122,15 +137,8 @@ export class MDIContainer {
     windowElement.setAttribute('title', config.title);
     windowElement.setAttribute('url', config.url);
     windowElement.setAttribute('data-url', config.url);
-    
-    // 使用配置的位置或默认位置
-    const position = config.position || defaultPosition;
     windowElement.setAttribute('position', JSON.stringify(position));
-    
-    // 使用配置的大小或默认大小
-    const size = config.size || defaultSize;
     windowElement.setAttribute('size', JSON.stringify(size));
-    
     windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
 
     // 添加事件监听器
@@ -141,6 +149,12 @@ export class MDIContainer {
     });
     windowElement.addEventListener('maximize', () => {
       // 处理最大化事件
+    });
+    windowElement.addEventListener('movestart', (e: Event) => {
+      const customEvent = e as CustomEvent;
+      // 设置当前目标并初始化移动
+      this.sharedMover.setAttribute('target', `#${config.id}`);
+      (this.sharedMover as any).initializeMove(customEvent.detail.mouseEvent);
     });
 
     // 添加到容器
@@ -169,6 +183,12 @@ export class MDIContainer {
       if (url) {
         this.lastOpenedWindows = this.lastOpenedWindows.filter(w => w.url !== url);
         this.saveLastOpenedWindows();
+      }
+      
+      // 如果当前正在移动这个窗口，停止移动
+      if (this.sharedMover.getAttribute('target') === `#${windowId}`) {
+        this.sharedMover.removeAttribute('target');
+        (this.sharedMover as any).stopMove();
       }
       
       // 移除窗口元素并清理状态

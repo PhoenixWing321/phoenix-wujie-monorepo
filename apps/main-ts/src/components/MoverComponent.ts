@@ -80,7 +80,8 @@ class MoverComponent extends HTMLElement {
                 this.target.addEventListener('mousedown', this.handleMouseDown);
             }
         } else {
-            console.error('请提供 target 属性');
+            // 可以为空，构造时
+            // console.error('请提供 target 属性');
         }
 
         if (maskSelector) {
