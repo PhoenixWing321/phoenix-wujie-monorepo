@@ -166,8 +166,9 @@ export class PhoenixWindowManagerCmp extends HTMLElement {
       const customEvent = e as CustomEvent;
       // 设置当前目标并初始化移动
       this.sharedMover.setAttribute('target', `#${config.id}`);
-      // 将 sharedMover 的 mask 设置为 Shadow DOM 的根元素
-      this.sharedMover.setAttribute('mask', ':host');
+      
+      // 将 sharedMover 的 mask 设置为 this
+      this.sharedMover.setAttribute('overlay', `#${this.id}`);
       (this.sharedMover as any).initializeMove(customEvent.detail.mouseEvent);
     });
 

@@ -1,20 +1,26 @@
 export class PhoenixMoverCmp extends HTMLElement {
-  private target: HTMLElement | null = null;
-  private maskElement: HTMLElement | null = null;
-  private isDragging: boolean = false;
-  private indicator: HTMLElement;
-  private mask: HTMLElement;
+  private target: HTMLElement | null = null; //被拖拽的元素
+  private overlay: HTMLElement | null = null; //被覆盖的元素
+  private isDragging: boolean = false; //是否正在拖拽
+  private indicator: HTMLElement; //拖拽指示器
+  private mask: HTMLElement; //拖拽遮罩
   private startMouseX: number = 0;  // 鼠标起始位置
-  private startMouseY: number = 0;
+  private startMouseY: number = 0; //鼠标起始位置
   private startElementX: number = 0;  // 元素起始位置
-  private startElementY: number = 0;
-  private checkInterval: number | null = null;
+  private startElementY: number = 0; //元素起始位置
+  private checkInterval: number | null = null; //检查定时器
   private lastMouseX: number = 0;  // 鼠标最后位置
-  private lastMouseY: number = 0;
-  private maskRect: DOMRect | null = null;
+  private lastMouseY: number = 0; //鼠标最后位置
+  private maskRect: DOMRect | null = null; //遮罩区域
 
-  constructor() {
+  /**
+   * @param overlay 被覆盖的元素
+   * @param target 被拖拽的元素
+   */
+  constructor(overlay: HTMLElement | null = null, target: HTMLElement | null = null) {
     super();
+    this.setTarget(target);
+    this.setOverlay(overlay);
 
     // 创建 Shadow DOM
     const shadow = this.attachShadow({ mode: 'open' });
@@ -43,7 +49,17 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   // 监听属性变化
   static get observedAttributes() {
-    return ['target', 'mask'];
+    return ['target', 'overlay'];
+  }
+
+  // 设置overlay
+  setOverlay(overlay: HTMLElement | null) {
+    this.overlay = overlay;
+  }
+
+  // 设置target
+  setTarget(target: HTMLElement | null) {
+    this.target = target; 
   }
 
   attributeChangedCallback(name: string, oldValue: string, newValue: string) {
@@ -59,41 +75,43 @@ export class PhoenixMoverCmp extends HTMLElement {
         }
       }
       this.target = newValue ? document.querySelector(newValue) : null;
-    } else if (name === 'mask') {
+    } else if (name === 'overlay') {
       // 更新遮罩区域
-      this.maskElement = newValue ? document.querySelector(newValue) : null;
-      if (this.maskElement) {
-        this.maskRect = this.maskElement.getBoundingClientRect();
+      this.overlay = newValue ? document.querySelector(newValue) : null;
+      if (this.overlay) {
+        this.maskRect = this.overlay.getBoundingClientRect();
       }
     }
   }
 
   // 当组件被添加到 DOM 时调用
   connectedCallback() {
-    // 获取传入的属性
-    const targetSelector = this.getAttribute('target');
-    const maskSelector = this.getAttribute('mask');
-
-    if (targetSelector) {
-      this.target = document.querySelector(targetSelector);
-      if (this.target) {
-        this.target.addEventListener('mousedown', this.handleMouseDown);
+    // 设置target
+    if(!this.target) {
+      // 获取传入的属性
+      const targetSelector = this.getAttribute('target');
+      if (targetSelector) {
+        this.target = document.querySelector(targetSelector);
+        if (this.target) {
+          this.target.addEventListener('mousedown', this.handleMouseDown);
+        }
       }
-    } else {
       // 可以为空，构造时
       // console.error('请提供 target 属性');
     }
 
-    if (maskSelector) {
-      this.maskElement = document.querySelector(maskSelector);
-      if (this.maskElement) {
-        this.maskRect = this.maskElement.getBoundingClientRect();
-        
-        // 更新遮罩尺寸和位置
-        this.updateMaskPosition();
-        // 监听窗口大小变化
-        window.addEventListener('resize', this.updateMaskPosition);
-      }
+    // 设置overlay    
+    if(!this.overlay) {
+      const overlySelector = this.getAttribute('overlay');
+      if (overlySelector) this.overlay = document.querySelector(overlySelector);
+    }  
+
+    if(this.overlay) {
+      this.maskRect = this.overlay.getBoundingClientRect();
+      // 更新遮罩尺寸和位置
+      this.updateMaskPosition();
+      // 监听窗口大小变化
+      window.addEventListener('resize', this.updateMaskPosition);
     }
 
     // 绑定全局事件
@@ -103,8 +121,8 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   // 更新遮罩位置和尺寸
   private updateMaskPosition = () => {
-    if (this.maskElement) {
-      const rect = this.maskElement.getBoundingClientRect();
+    if (this.overlay) {
+      const rect = this.overlay.getBoundingClientRect();
       this.mask.style.top = `${rect.top}px`;
       this.mask.style.left = `${rect.left}px`;
       this.mask.style.width = `${rect.width}px`;
@@ -189,8 +207,8 @@ export class PhoenixMoverCmp extends HTMLElement {
       this.indicator.style.height = `${rect.height}px`;
 
       // 更新遮罩区域的位置信息
-      if (this.maskElement) {
-        this.maskRect = this.maskElement.getBoundingClientRect();
+      if (this.overlay) {
+        this.maskRect = this.overlay.getBoundingClientRect();
       }
     }
 
@@ -282,7 +300,6 @@ export class PhoenixMoverCmp extends HTMLElement {
     this.startElementY = relativePos.top;
 
     // 添加拖动状态
-    this.target.classList.add('dragging');
     this.indicator.classList.add('dragging');
 
     // 显示并更新遮罩
@@ -302,9 +319,6 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   // 新增：停止移动的方法
   public stopMove() {
-    if (this.target) {
-      this.target.classList.remove('dragging');
-    }
     this.isDragging = false;
     this.indicator.classList.remove('dragging');
     this.mask.classList.remove('dragging');
