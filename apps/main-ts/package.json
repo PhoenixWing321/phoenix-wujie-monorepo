@@ -12,6 +12,7 @@
     "@phoenix-wujie-monorepo/ui": "workspace:*"
   },
   "devDependencies": {
+    "@vitejs/plugin-vue": "^5.2.3",
     "typescript": "~5.7.2",
     "vite": "^6.2.0"
   }

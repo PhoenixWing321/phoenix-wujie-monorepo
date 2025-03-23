@@ -1,3 +1,18 @@
+import { debounce } from 'lodash';
+
+// 添加接口定义
+interface Position {
+  x: number;
+  y: number;
+}
+
+interface Rect {
+  left: number;
+  top: number;
+  width: number;
+  height: number;
+}
+
 export class PhoenixMoverCmp extends HTMLElement {
   private target: HTMLElement | null = null; //被拖拽的元素
   private overlay: HTMLElement | null = null; //被覆盖的元素
@@ -12,6 +27,108 @@ export class PhoenixMoverCmp extends HTMLElement {
   private lastMouseX: number = 0;  // 鼠标最后位置
   private lastMouseY: number = 0; //鼠标最后位置
   private maskRect: DOMRect | null = null; //遮罩区域
+  private debouncedUpdateMaskPosition: () => void; //防抖的更新遮罩位置方法
+
+  // 提取常量
+  private static readonly Z_INDEX = {
+    INDICATOR: 9999,
+    MASK: 9998,
+    MOVER_INDICATOR: 1001,
+    MOVER_MASK: 999
+  };
+
+  private static readonly CHECK_INTERVAL = 100;
+
+  // 可以把样式提取为常量，提高可维护性
+  private static readonly STYLES = `
+    .indicator {
+      position: fixed;
+      pointer-events: none;
+      z-index: 9999;
+      border: 2px dashed #4CAF50;
+      background: rgba(76,175,80,0.1);
+      display: none;
+    }
+
+    .indicator.visible {
+      display: block;
+    }
+
+    .mask {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background: rgba(0,0,0,0.05);
+      pointer-events: none;
+      z-index: 9998;
+      display: none;
+    }
+
+    .mask.visible {
+      display: block;
+    }
+
+    .mover-indicator {
+      position: fixed;
+      pointer-events: none;
+      z-index: 1001;
+    }
+
+    .mover-indicator::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      border: 3px solid #2196F3;
+      pointer-events: none;
+      z-index: 1000;
+      opacity: 0;
+      transition: opacity 0.3s;
+      box-shadow: 0 0 10px rgba(33, 150, 243, 0.8);
+      border-radius: 2px;
+    }
+
+    .mover-mask {
+      position: absolute;
+      top: 0;
+      left: 0;
+      right: 0;
+      bottom: 0;
+      background-color: rgba(0, 0, 0, 0.05);
+      pointer-events: none;
+      z-index: 999;
+      opacity: 0;
+      transition: opacity 0.3s;
+    }
+
+    .mover-indicator.dragging::before,
+    .mover-mask.dragging {
+      opacity: 1;
+    }
+
+    .mover-mask.dragging {
+      pointer-events: auto;
+      background-color: rgba(0, 0, 0, 0.05);
+      backdrop-filter: brightness(0.98) blur(1px);
+    }
+  `;
+
+  // 将相关的方法分组
+  private readonly positionMethods = {
+    getRelativePosition: (element: HTMLElement) => { /* ... */ },
+    limitPosition: (x: number, y: number) => { /* ... */ },
+    updateMaskPosition: () => { /* ... */ }
+  };
+
+  private readonly eventHandlers = {
+    handleMouseDown: (e: MouseEvent) => { /* ... */ },
+    handleMouseMove: (e: MouseEvent) => { /* ... */ },
+    handleMouseUp: (e: MouseEvent | null) => { /* ... */ }
+  };
 
   /**
    * @param overlay 被覆盖的元素
@@ -22,13 +139,18 @@ export class PhoenixMoverCmp extends HTMLElement {
     this.setTarget(target);
     this.setOverlay(overlay);
 
+    // 绑定事件处理函数
+    this.handleMouseDown = this.handleMouseDown.bind(this);
+    this.handleMouseMove = this.handleMouseMove.bind(this);
+    this.handleMouseUp = this.handleMouseUp.bind(this);
+    this.updateMaskPosition = this.updateMaskPosition.bind(this);
+
     // 创建 Shadow DOM
     const shadow = this.attachShadow({ mode: 'open' });
 
-    // 添加样式
-    const style = document.createElement('link');
-    style.setAttribute('rel', 'stylesheet');
-    style.setAttribute('href', '../src/components/PhoenixMoverCmp.css');
+    // 创建样式
+    const style = document.createElement('style');
+    style.textContent = PhoenixMoverCmp.STYLES;
     shadow.appendChild(style);
 
     // 创建指示器
@@ -68,7 +190,7 @@ export class PhoenixMoverCmp extends HTMLElement {
     if (name === 'target') {
       // 更新目标元素
       if (this.target) {
-        this.target.removeEventListener('mousedown', this.handleMouseDown);
+        this.target.removeEventListener('mousedown', this.eventHandlers.handleMouseDown);
         if (!newValue) {
           // 如果是移除target，调用stopMove
           this.stopMove();
@@ -77,7 +199,7 @@ export class PhoenixMoverCmp extends HTMLElement {
       this.target = newValue ? document.querySelector(newValue) : null;
     } else if (name === 'overlay') {
       // 更新遮罩区域
-      this.overlay = newValue ? document.querySelector(newValue) : null;
+      // this.overlay = newValue ? document.querySelector(newValue) : null;
       if (this.overlay) {
         this.maskRect = this.overlay.getBoundingClientRect();
       }
@@ -88,7 +210,6 @@ export class PhoenixMoverCmp extends HTMLElement {
   connectedCallback() {
     // 设置target
     if(!this.target) {
-      // 获取传入的属性
       const targetSelector = this.getAttribute('target');
       if (targetSelector) {
         this.target = document.querySelector(targetSelector);
@@ -96,8 +217,6 @@ export class PhoenixMoverCmp extends HTMLElement {
           this.target.addEventListener('mousedown', this.handleMouseDown);
         }
       }
-      // 可以为空，构造时
-      // console.error('请提供 target 属性');
     }
 
     // 设置overlay    
@@ -108,10 +227,9 @@ export class PhoenixMoverCmp extends HTMLElement {
 
     if(this.overlay) {
       this.maskRect = this.overlay.getBoundingClientRect();
-      // 更新遮罩尺寸和位置
       this.updateMaskPosition();
-      // 监听窗口大小变化
-      window.addEventListener('resize', this.updateMaskPosition);
+      this.debouncedUpdateMaskPosition = debounce(this.updateMaskPosition, 100);
+      window.addEventListener('resize', this.debouncedUpdateMaskPosition);
     }
 
     // 绑定全局事件
@@ -121,13 +239,17 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   // 更新遮罩位置和尺寸
   private updateMaskPosition = () => {
-    if (this.overlay) {
-      const rect = this.overlay.getBoundingClientRect();
-      this.mask.style.top = `${rect.top}px`;
-      this.mask.style.left = `${rect.left}px`;
-      this.mask.style.width = `${rect.width}px`;
-      this.mask.style.height = `${rect.height}px`;
-      this.maskRect = rect;
+    try {
+      if (this.overlay) {
+        const rect = this.overlay.getBoundingClientRect();
+        this.mask.style.top = `${rect.top}px`;
+        this.mask.style.left = `${rect.left}px`;
+        this.mask.style.width = `${rect.width}px`;
+        this.mask.style.height = `${rect.height}px`;
+        this.maskRect = rect;
+      }
+    } catch (error) {
+      console.error('更新遮罩位置失败:', error);
     }
   };
 
@@ -140,7 +262,9 @@ export class PhoenixMoverCmp extends HTMLElement {
     // 移除全局事件
     document.removeEventListener('mousemove', this.handleMouseMove);
     document.removeEventListener('mouseup', this.handleMouseUp);
-    window.removeEventListener('resize', this.updateMaskPosition);
+    window.removeEventListener('resize', this.debouncedUpdateMaskPosition);
+
+    this.cleanup();
   }
 
   private getRelativePosition(element: HTMLElement): { left: number; top: number } {
@@ -176,6 +300,7 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   private handleMouseDown = (e: MouseEvent) => {
     e.preventDefault();
+    e.stopPropagation(); // 阻止事件冒泡
     this.isDragging = true;
 
     if (this.target) {
@@ -196,7 +321,7 @@ export class PhoenixMoverCmp extends HTMLElement {
       this.indicator.classList.add('dragging');
       
       // 显示并添加遮罩状态
-      this.updateMaskPosition();  // 更新遮罩位置
+      this.updateMaskPosition();
       this.mask.style.display = 'block';
       this.mask.classList.add('dragging');
 
@@ -225,13 +350,16 @@ export class PhoenixMoverCmp extends HTMLElement {
     // 每100ms检查一次鼠标状态
     this.checkInterval = window.setInterval(() => {
       if (this.isDragging && !document.hasFocus()) {
-        this.handleMouseUp(null);
+        this.eventHandlers.handleMouseUp(null);
       }
     }, 100);
   }
 
   private handleMouseMove = (e: MouseEvent) => {
     if (!this.isDragging) return;
+
+    e.preventDefault();
+    e.stopPropagation(); // 阻止事件冒泡
 
     // 更新鼠标最后位置
     this.lastMouseX = e.clientX;
@@ -255,6 +383,11 @@ export class PhoenixMoverCmp extends HTMLElement {
 
   private handleMouseUp = (e: MouseEvent | null) => {
     if (!this.isDragging) return;
+
+    if (e) {
+      e.preventDefault();
+      e.stopPropagation(); // 阻止事件冒泡
+    }
 
     // 计算最终的相对移动距离
     if (this.target) {
@@ -338,7 +471,18 @@ export class PhoenixMoverCmp extends HTMLElement {
     this.startElementX = 0;
     this.startElementY = 0;
   }
-}
 
+  // 添加清理方法
+  private cleanup() {
+    if (this.checkInterval) {
+      window.clearInterval(this.checkInterval);
+      this.checkInterval = null;
+    }
+    
+    document.removeEventListener('mousemove', this.handleMouseMove);
+    document.removeEventListener('mouseup', this.handleMouseUp);
+    window.removeEventListener('resize', this.updateMaskPosition);
+  }
+}
 // 注册自定义元素
 customElements.define('phoenix-mover', PhoenixMoverCmp);

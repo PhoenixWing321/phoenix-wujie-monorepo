@@ -1,6 +1,6 @@
 import './PhoenixWindowManagerCmp.css';
-import { PhoenixSubWindowCmp } from './PhoenixSubWindowCmp';
-import { PhoenixMoverCmp } from './PhoenixMoverCmp';
+import { PhoenixSubWindowCmp } from '@ui/components/PhoenixSubWindowCmp';
+import { PhoenixMoverCmp } from '@ui/components/PhoenixMoverCmp';
 
 
 // 窗口配置接口

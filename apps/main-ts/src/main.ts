@@ -1,7 +1,7 @@
 import './style.css';
-import { PhoenixWindowManagerCmp } from './components/PhoenixWindowManagerCmp';
-import './components/PhoenixSubWindowCmp';  // 确保 PhoenixSubWindowCmp 被注册
-import './components/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
+import { PhoenixWindowManagerCmp } from '@ui/components/PhoenixWindowManagerCmp';
+import '@ui/components/PhoenixSubWindowCmp';  // 确保 PhoenixSubWindowCmp 被注册
+import '@ui/components/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
 
 // 定义 PhoenixResizerCmp 的类型
 declare global {

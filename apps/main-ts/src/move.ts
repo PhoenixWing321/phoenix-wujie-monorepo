@@ -1,4 +1,4 @@
-import { PhoenixMoverCmp } from './components/PhoenixMoverCmp';
+import { PhoenixMoverCmp } from '@ui/components/PhoenixMoverCmp';
 
 // 获取覆盖元素
 const overlay = document.getElementById('window-container');
@@ -20,7 +20,7 @@ function appendMoveController(element: HTMLElement): void {
   element.addEventListener('mousedown', function(e: MouseEvent) { 
     // 如果z-index小于zMax,则更新z-index
     if(parseInt(element.style.zIndex) < zMax) {
-      zMax = parseInt(element.style.zIndex) + 1;
+      zMax++;
       element.style.zIndex = zMax.toString();
     }
     
