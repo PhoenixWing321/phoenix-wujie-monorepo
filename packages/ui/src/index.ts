@@ -1,5 +1,5 @@
 // Export UI components
-export * from './components';
+export * from './cmp';
 
 // Export types
 export * from './types'; 

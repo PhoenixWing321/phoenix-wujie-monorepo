@@ -7,7 +7,7 @@ export default defineConfig({
   plugins: [vue()],
   resolve: {
     alias: {
-      '@ui': resolve(__dirname, '../../packages/ui/src')
+      '@phoenix-ui': resolve(__dirname, '../../packages/ui/src')
     }
   }
 }) 

@@ -1,4 +1,4 @@
-import { PhoenixMoverCmp } from '@ui/components/PhoenixMoverCmp';
+import { PhoenixMoverCmp } from '@phoenix-ui/cmp/PhoenixMoverCmp';
 
 // 获取覆盖元素
 const overlay = document.getElementById('window-container');

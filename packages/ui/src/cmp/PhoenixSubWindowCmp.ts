@@ -1,4 +1,3 @@
-import './PhoenixSubWindowCmp.css';
 
 interface PhoenixSubWindowCmpProps {
   id: string;

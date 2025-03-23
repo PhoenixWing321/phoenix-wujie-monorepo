@@ -8,6 +8,11 @@ export default defineConfig({
     vue(),
     vueJsx()
   ],
+  resolve: {
+    alias: {
+      '@phoenix-ui': resolve(__dirname, 'src')
+    }
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
