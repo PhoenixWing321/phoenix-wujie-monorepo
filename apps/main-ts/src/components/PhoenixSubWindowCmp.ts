@@ -1,6 +1,6 @@
-import './WindowComponent.css';
+import './PhoenixSubWindowCmp.css';
 
-interface WindowComponentProps {
+interface PhoenixSubWindowCmpProps {
   id: string;
   title: string;
   url: string;
@@ -9,7 +9,7 @@ interface WindowComponentProps {
   zIndex?: number;
 }
 
-export class WindowComponent extends HTMLElement {
+export class PhoenixSubWindowCmp extends HTMLElement {
   private shadow: ShadowRoot;
   private element: HTMLElement;
   private isMaximized = false;
@@ -17,7 +17,7 @@ export class WindowComponent extends HTMLElement {
   private originalSize?: { width: number; height: number };
   private originalPosition?: { x: number; y: number };
   private resizeHandles: HTMLElement[] = [];
-  private props: WindowComponentProps;
+  private props: PhoenixSubWindowCmpProps;
 
   constructor() {
     super();
@@ -319,7 +319,7 @@ export class WindowComponent extends HTMLElement {
         const target = mouseEvent.target as HTMLElement;
         if (target.closest('.window-controls')) return;
         
-        // 触发移动事件，让MoverComponent处理
+        // 触发移动事件，让PhoenixMoverCmp处理
         this.dispatchEvent(new CustomEvent('movestart', {
           detail: { mouseEvent }
         }));
@@ -510,4 +510,4 @@ export class WindowComponent extends HTMLElement {
 }
 
 // 注册自定义元素
-customElements.define('window-component', WindowComponent); 
+customElements.define('phoenix-sub-window', PhoenixSubWindowCmp); 

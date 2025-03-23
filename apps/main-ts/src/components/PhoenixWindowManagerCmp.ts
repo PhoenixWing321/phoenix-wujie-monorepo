@@ -1,6 +1,6 @@
-import './MDIContainer.css';
-import { WindowComponent } from './WindowComponent';
-import { MoverComponent } from './MoverComponent';
+import './PhoenixWindowManagerCmp.css';
+import { PhoenixSubWindowCmp } from './PhoenixSubWindowCmp';
+import { PhoenixMoverCmp } from './PhoenixMoverCmp';
 
 
 // 窗口配置接口
@@ -25,21 +25,21 @@ interface WindowState {
   isMaximized: boolean;
 }
 
-export class MDIContainer extends HTMLElement {
-  private windows: WindowComponent[] = [];
+export class PhoenixWindowManagerCmp extends HTMLElement {
+  private windows: PhoenixSubWindowCmp[] = [];
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
   private maxZIndex: number = 0;
   private readonly Z_INDEX_THRESHOLD = 99999;
-  private sharedMover: MoverComponent;
+  private sharedMover: PhoenixMoverCmp;
   private toolButtons: HTMLElement;
   private lastArrangement: 'cascade' | 'tile' | null = null;
 
   constructor() {
     super();
     
-    // 创建共享的 mover-component
-    this.sharedMover = new MoverComponent();
+    // 创建共享的 phoenix-mover
+    this.sharedMover = new PhoenixMoverCmp();
     this.appendChild(this.sharedMover);
     
     // 添加工具按钮容器
@@ -144,7 +144,7 @@ export class MDIContainer extends HTMLElement {
     };
 
     // 创建新窗口
-    const windowElement = new WindowComponent();
+    const windowElement = new PhoenixSubWindowCmp();
     windowElement.setAttribute('id', config.id);
     windowElement.setAttribute('title', config.title);
     windowElement.setAttribute('url', config.url);
@@ -339,4 +339,4 @@ export class MDIContainer extends HTMLElement {
 }
 
 // 注册自定义元素
-customElements.define('mdi-container', MDIContainer); 
+customElements.define('phoenix-window-manager', PhoenixWindowManagerCmp); 

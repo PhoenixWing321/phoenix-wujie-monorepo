@@ -1,6 +1,6 @@
 import './style.css';
-import { MDIContainer } from './components/MDIContainer';
-import './components/WindowComponent';  // 确保 WindowComponent 被注册
+import { PhoenixWindowManagerCmp } from './components/PhoenixWindowManagerCmp';
+import './components/PhoenixSubWindowCmp';  // 确保 PhoenixSubWindowCmp 被注册
 import './components/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
 
 // 定义 PhoenixResizerCmp 的类型
@@ -24,11 +24,12 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           <button id="addWindow" class="tool-button">添加窗口</button>
           <button id="clearWindows" class="tool-button">清除所有</button>
           <button id="restoreWindows" class="tool-button">恢复窗口</button>
+          <button id="test-mover" class="tool-button">测试拖拽</button>
         </div>
       </div>
     </div>
     <phoenix-resizer target=".toolbar"></phoenix-resizer>
-    <div class="windows-container" id="windowsContainer">
+    <div class="windows-container" id="windowManager">
       <!-- 子窗口将在这里动态添加 -->
     </div>
   </div>
@@ -81,13 +82,13 @@ const toggleToolbar = () => {
 };
 
 // 创建MDI容器实例
-const mdiContainer = new MDIContainer();
-document.getElementById('windowsContainer')?.appendChild(mdiContainer);
+const manager = new PhoenixWindowManagerCmp();
+document.getElementById('windowManager')?.appendChild(manager);
 
 // 添加窗口功能
 const addWindow = () => {
-  const lastOpenedWindows = mdiContainer.getLastOpenedWindows();
-  const windowCount = document.querySelectorAll('window-component').length;
+  const lastOpenedWindows = manager.getLastOpenedWindows();
+  const windowCount = document.querySelectorAll('phoenix-sub-window').length;
   const offset = 30; // 每个窗口错开的距离
   
   // 计算新窗口的位置
@@ -104,7 +105,7 @@ const addWindow = () => {
   
   if (lastOpenedWindows.length === 0) {
     // 如果没有打开的窗口，打开默认窗口
-    mdiContainer.addWindow({
+    manager.addWindow({
       id: `window-${Date.now()}`,
       title: '默认窗口',
       url: 'http://localhost:8311', // 这里替换为实际的子应用URL
@@ -130,7 +131,7 @@ const addWindow = () => {
     const blob = new Blob([demoContent], { type: 'text/html' });
     const url = URL.createObjectURL(blob);
     
-    mdiContainer.addWindow({
+    manager.addWindow({
       id: demoWindowId,
       title: `示例窗口 ${windowCount + 1}`,
       url,
@@ -142,20 +143,26 @@ const addWindow = () => {
 
 // 清除所有窗口功能
 const clearWindows = () => {
-  mdiContainer.clearWindows();
+  manager.clearWindows();
 };
 
 // 恢复窗口功能
 const restoreWindows = () => {
   // 检查是否有上次打开的窗口
-  const lastOpenedWindows = mdiContainer.getLastOpenedWindows();
+  const lastOpenedWindows = manager.getLastOpenedWindows();
   if (lastOpenedWindows.length > 0) {
     if (confirm('是否恢复上次打开的窗口？')) {
       lastOpenedWindows.forEach(config => {
-        mdiContainer.addWindow(config);
+        manager.addWindow(config);
       });
     }
   }
+};
+
+// 测试拖拽功能
+const testMover = () => {
+  // _blank 打开新窗口
+  window.open('/move.html', '_blank');
 };
 
 // 添加事件监听器
@@ -163,3 +170,4 @@ document.getElementById('addWindow')?.addEventListener('click', addWindow);
 document.getElementById('clearWindows')?.addEventListener('click', clearWindows);
 document.getElementById('restoreWindows')?.addEventListener('click', restoreWindows);
 document.getElementById('toggleToolbar')?.addEventListener('click', toggleToolbar);
+document.getElementById('test-mover')?.addEventListener('click', testMover);

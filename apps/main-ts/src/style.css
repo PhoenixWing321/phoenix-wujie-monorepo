@@ -98,8 +98,8 @@ body {
   overflow: hidden;
 }
 
-/* 确保window-component正确显示 */
-window-component {
+/* 确保phoenix-sub-window正确显示 */
+phoenix-sub-window {
   position: absolute;
   display: block;
   background: white;
