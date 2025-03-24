@@ -1,9 +1,12 @@
 import './style.css';
-import { PhoenixWindowManagerCmp } from './components/PhoenixWindowManagerCmp';
-import './components/PhoenixSubWindowCmp';  // 确保 PhoenixSubWindowCmp 被注册
-import './components/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
+import { PhoenixWindowManager } from '@phoenix-ui/wc/PhoenixWindowManager';
+import { PhoenixResizer } from '@phoenix-ui/wc/PhoenixResizer';
 
-// 定义 PhoenixResizerCmp 的类型
+ // 直接导入组件文件，确保组件被注册，用于html中使用
+import '@phoenix-ui/wc/PhoenixResizer'; 
+import '@phoenix-ui/wc/PhoenixButton';
+
+// 定义 PhoenixResizer 的类型
 declare global {
   interface HTMLElementTagNameMap {
     'phoenix-resizer': any;  // 暂时使用 any 类型，因为组件已经在文件中注册
@@ -21,10 +24,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           </button>
         </div>
         <div class="tool-buttons">
-          <button id="addWindow" class="tool-button">添加窗口</button>
-          <button id="clearWindows" class="tool-button">清除所有</button>
-          <button id="restoreWindows" class="tool-button">恢复窗口</button>
-          <button id="test-mover" class="tool-button">测试拖拽</button>
+          <phoenix-button type="primary" id="addWindow">添加窗口</phoenix-button >
+          <phoenix-button type="primary" id="clearWindows">清除所有</phoenix-button >
+          <phoenix-button type="primary" id="restoreWindows">恢复窗口</phoenix-button >
+          <phoenix-button type="primary" id="test-mover">测试拖拽</phoenix-button >
         </div>
       </div>
     </div>
@@ -42,7 +45,7 @@ const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 200;
 
 // 获取 Resizer 实例
-const toolbarResizer = document.querySelector('phoenix-resizer') as any;
+const toolbarResizer = document.querySelector('phoenix-resizer') as PhoenixResizer;
 if (toolbarResizer) {
   toolbarResizer.setMinWidth(MIN_WIDTH);
   toolbarResizer.setMaxWidth(MAX_WIDTH);
@@ -82,7 +85,7 @@ const toggleToolbar = () => {
 };
 
 // 创建MDI容器实例
-const manager = new PhoenixWindowManagerCmp();
+const manager = new PhoenixWindowManager();
 document.getElementById('windowManager')?.appendChild(manager);
 
 // 添加窗口功能

@@ -1,10 +1,12 @@
-import { PhoenixMoverCmp } from './components/PhoenixMoverCmp';
+import { PhoenixMover } from '@phoenix-ui/wc/PhoenixMover';
+
+import '@phoenix-ui/wc/PhoenixButton';
 
 // 获取覆盖元素
 const overlay = document.getElementById('window-container');
 
 // 创建共享的 phoenix-mover
-const sharedMover: PhoenixMoverCmp = new PhoenixMoverCmp(overlay);
+const sharedMover: PhoenixMover = new PhoenixMover(overlay);
 document.body.appendChild(sharedMover);
 
 let zMax = 1;  // 添加全局z-index计数器
@@ -20,7 +22,7 @@ function appendMoveController(element: HTMLElement): void {
   element.addEventListener('mousedown', function(e: MouseEvent) { 
     // 如果z-index小于zMax,则更新z-index
     if(parseInt(element.style.zIndex) < zMax) {
-      zMax = parseInt(element.style.zIndex) + 1;
+      zMax++;
       element.style.zIndex = zMax.toString();
     }
     

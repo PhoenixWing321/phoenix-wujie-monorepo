@@ -9,7 +9,13 @@
 
 <body>
   <div class="left">
-    <button id="addElementBtn" class="add-button">添加新元素</button>
+    <phoenix-button type="primary" id="addElementBtn">添加新元素</phoenix-button>
+    <!-- 基本用法 -->
+    <phoenix-button>添加新元素1</phoenix-button>
+
+    <!-- 带类型的按钮 -->
+    <phoenix-button type="primary">主要按钮</phoenix-button>
+    <phoenix-button type="secondary">次要按钮</phoenix-button>
   </div>
   <div class="container">
     <div class="title">按住矩形拖动</div>
@@ -24,7 +30,7 @@
 </body>
 
 </html>
-<script type="module" src="/src/move.ts">
+<script type="module" src="./src/move.ts">
   // 代码放到ts文件中，可以有更好的类型推断、性能优化
   // HTML 里面不能写ts代码
 </script>

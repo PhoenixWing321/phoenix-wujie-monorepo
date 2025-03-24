@@ -8,6 +8,11 @@ export default defineConfig({
     vue(),
     vueJsx()
   ],
+  resolve: {
+    alias: {
+      '@phoenix-ui': resolve(__dirname, 'src')
+    }
+  },
   build: {
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -15,12 +20,19 @@ export default defineConfig({
       fileName: (format) => `index.${format}.js`
     },
     rollupOptions: {
-      external: ['vue'],
+      external: ['vue', 'lit'],
       output: {
         globals: {
-          vue: 'Vue'
+          vue: 'Vue',
+          lit: 'Lit'
         }
       }
+    }
+  },
+  esbuild: {
+    target: 'es2020',
+    supported: {
+      'decorators': true
     }
   }
 }); 

@@ -1,6 +1,5 @@
-import './PhoenixWindowManagerCmp.css';
-import { PhoenixSubWindowCmp } from './PhoenixSubWindowCmp';
-import { PhoenixMoverCmp } from './PhoenixMoverCmp';
+import { PhoenixSubWindow } from '@phoenix-ui/wc/PhoenixSubWindow';
+import { PhoenixMover } from '@phoenix-ui/wc/PhoenixMover';
 
 
 // 窗口配置接口
@@ -25,21 +24,180 @@ interface WindowState {
   isMaximized: boolean;
 }
 
-export class PhoenixWindowManagerCmp extends HTMLElement {
-  private windows: PhoenixSubWindowCmp[] = [];
+export class PhoenixWindowManager extends HTMLElement {
+  private windows: PhoenixSubWindow[] = [];
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
   private maxZIndex: number = 0;
   private readonly Z_INDEX_THRESHOLD = 99999;
-  private sharedMover: PhoenixMoverCmp;
+  private sharedMover: PhoenixMover;
   private toolButtons: HTMLElement;
   private lastArrangement: 'cascade' | 'tile' | null = null;
 
+  
+  // 可以把样式提取为常量，提高可维护性
+  private static readonly STYLES = `
+  /* 窗口容器样式 */
+.windows-container {
+  flex: 1;
+  position: relative;
+  overflow: hidden;
+  background-color: #f0f0f0;
+  display: flex;  /* 添加这个确保内容能正确显示 */
+}
+
+/* 窗口拖动预览 */
+.window-drag-preview {
+  position: absolute;
+  border: 2px solid #2196F3;
+  background-color: rgba(33, 150, 243, 0.1);
+  border-radius: 4px;
+  pointer-events: none;
+  z-index: 100000;
+  box-shadow: 0 0 10px rgba(33, 150, 243, 0.3);
+}
+
+/* 拖动时的遮罩层 */
+.window-drag-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.1);  /* 半透明灰色背景 */
+  z-index: 99998;
+  cursor: move;
+  pointer-events: auto;  /* 改回 auto，以捕获所有事件 */
+}
+
+/* 拖动时禁用其他窗口的指针事件 */
+.window-dragging .window:not(.dragging) {
+  pointer-events: none;
+}
+
+/* 窗口样式 */
+.window {
+  position: absolute;
+  background-color: #fff;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+  min-height: 150px;
+  z-index: 1;
+}
+
+.window.maximized {
+  left: 0 !important;
+  top: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.window.minimized {
+  height: 40px !important;
+  overflow: hidden;
+}
+
+.window-header {
+  padding: 0.5rem;
+  background-color: #f8f8f8;
+  border-bottom: 1px solid #ddd;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  cursor: move;
+  user-select: none;
+}
+
+.window-title {
+  font-weight: 500;
+  margin-right: 1rem;
+}
+
+.window-controls {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.window-controls button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem 0.5rem;
+  color: #666;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.window-controls button:hover {
+  color: #333;
+  background-color: #f0f0f0;
+  border-radius: 2px;
+}
+
+.window-content {
+  flex: 1;
+  overflow: auto;
+  padding: 1rem;
+  position: relative;  /* 添加这个确保内容能正确定位 */
+}
+
+.window-content iframe {
+  width: 100%;
+  height: 100%;
+  border: none;
+  position: absolute;  /* 添加这个确保iframe能填满容器 */
+  top: 0;
+  left: 0;
+}
+
+phoenix-window-manager {
+  display: block;
+  width: 100%;
+  height: 100%;
+  position: relative;
+  overflow: hidden;
+}
+
+.mdi-tool-buttons {
+  position: fixed;
+  top: 10px;
+  right: 10px;
+  z-index: 9999;
+  display: flex;
+  gap: 8px;
+}
+
+.mdi-tool-button {
+  padding: 8px 16px;
+  border: none;
+  border-radius: 4px;
+  background: #fff;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  cursor: pointer;
+  transition: all 0.3s;
+}
+
+.mdi-tool-button:hover {
+  background: #f0f0f0;
+} 
+  `;
+
   constructor() {
     super();
+
+    // 创建样式
+    const style = document.createElement('style');
+    style.textContent = PhoenixWindowManager.STYLES;
+    this.appendChild(style);
     
     // 创建共享的 phoenix-mover
-    this.sharedMover = new PhoenixMoverCmp();
+    this.sharedMover = new PhoenixMover();
     this.appendChild(this.sharedMover);
     
     // 添加工具按钮容器
@@ -118,7 +276,6 @@ export class PhoenixWindowManagerCmp extends HTMLElement {
 
   // 添加新窗口
   addWindow(config: WindowConfig) {
-    console.log('addWindow', config);
     // 检查是否已存在相同URL的窗口
     const existingWindow = this.windows.find(w => w.getAttribute('data-url') === config.url);
     
@@ -144,25 +301,25 @@ export class PhoenixWindowManagerCmp extends HTMLElement {
     };
 
     // 创建新窗口
-    const windowElement = new PhoenixSubWindowCmp();
-    windowElement.setAttribute('id', config.id);
-    windowElement.setAttribute('title', config.title);
-    windowElement.setAttribute('url', config.url);
-    windowElement.setAttribute('data-url', config.url);
-    windowElement.setAttribute('position', JSON.stringify(position));
-    windowElement.setAttribute('size', JSON.stringify(size));
-    windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
+    const subWindow = new PhoenixSubWindow();
+    subWindow.setAttribute('id', config.id);
+    subWindow.setAttribute('title', config.title);
+    subWindow.setAttribute('url', config.url);
+    subWindow.setAttribute('data-url', config.url);
+    subWindow.setAttribute('position', JSON.stringify(position));
+    subWindow.setAttribute('size', JSON.stringify(size));
+    subWindow.setAttribute('z-index', (++this.maxZIndex).toString());
 
     // 添加事件监听器
-    windowElement.addEventListener('focus', () => this.activateWindow(config.id));
-    windowElement.addEventListener('close', () => this.closeWindow(config.id));
-    windowElement.addEventListener('minimize', () => {
+    subWindow.addEventListener('focus', () => this.activateWindow(config.id));
+    subWindow.addEventListener('close', () => this.closeWindow(config.id));
+    subWindow.addEventListener('minimize', () => {
       // 处理最小化事件
     });
-    windowElement.addEventListener('maximize', () => {
+    subWindow.addEventListener('maximize', () => {
       // 处理最大化事件
     });
-    windowElement.addEventListener('movestart', (e: Event) => {
+    subWindow.addEventListener('movestart', (e: Event) => {
       const customEvent = e as CustomEvent;
       // 设置当前目标并初始化移动
       this.sharedMover.setAttribute('target', `#${config.id}`);
@@ -173,8 +330,8 @@ export class PhoenixWindowManagerCmp extends HTMLElement {
     });
 
     // 修改添加到容器的方式
-    this.appendChild(windowElement);
-    this.windows.push(windowElement);
+    this.appendChild(subWindow);
+    this.windows.push(subWindow);
     
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
@@ -340,4 +497,4 @@ export class PhoenixWindowManagerCmp extends HTMLElement {
 }
 
 // 注册自定义元素
-customElements.define('phoenix-window-manager', PhoenixWindowManagerCmp); 
+customElements.define('phoenix-window-manager', PhoenixWindowManager); 
