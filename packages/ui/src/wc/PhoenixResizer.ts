@@ -1,4 +1,4 @@
-export class PhoenixResizerCmp extends HTMLElement {
+export class PhoenixResizer extends HTMLElement {
   private isDragging: boolean = false;
   private startX: number = 0;
   private startWidth: number = 0;
@@ -193,4 +193,4 @@ export class PhoenixResizerCmp extends HTMLElement {
 }
 
 // 注册自定义元素
-customElements.define('phoenix-resizer', PhoenixResizerCmp); 
+customElements.define('phoenix-resizer', PhoenixResizer); 

@@ -1,5 +1,5 @@
 
-interface PhoenixSubWindowCmpProps {
+interface PhoenixSubWindowProps {
   id: string;
   title: string;
   url: string;
@@ -8,7 +8,7 @@ interface PhoenixSubWindowCmpProps {
   zIndex?: number;
 }
 
-export class PhoenixSubWindowCmp extends HTMLElement {
+export class PhoenixSubWindow extends HTMLElement {
   private shadow: ShadowRoot;
   private element: HTMLElement;
   private isMaximized = false;
@@ -16,7 +16,7 @@ export class PhoenixSubWindowCmp extends HTMLElement {
   private originalSize?: { width: number; height: number };
   private originalPosition?: { x: number; y: number };
   private resizeHandles: HTMLElement[] = [];
-  private props: PhoenixSubWindowCmpProps;
+  private props: PhoenixSubWindowProps;
 
   constructor() {
     super();
@@ -318,7 +318,7 @@ export class PhoenixSubWindowCmp extends HTMLElement {
         const target = mouseEvent.target as HTMLElement;
         if (target.closest('.window-controls')) return;
         
-        // 触发移动事件，让PhoenixMoverCmp处理
+        // 触发移动事件，让PhoenixMover处理
         this.dispatchEvent(new CustomEvent('movestart', {
           detail: { mouseEvent }
         }));
@@ -509,4 +509,4 @@ export class PhoenixSubWindowCmp extends HTMLElement {
 }
 
 // 注册自定义元素
-customElements.define('phoenix-sub-window', PhoenixSubWindowCmp); 
+customElements.define('phoenix-sub-window', PhoenixSubWindow); 

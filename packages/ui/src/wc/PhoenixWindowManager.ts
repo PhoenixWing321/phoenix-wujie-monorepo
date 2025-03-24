@@ -1,5 +1,5 @@
-import { PhoenixSubWindowCmp } from '@phoenix-ui/cmp/PhoenixSubWindowCmp';
-import { PhoenixMoverCmp } from '@phoenix-ui/cmp/PhoenixMoverCmp';
+import { PhoenixSubWindow } from '@phoenix-ui/wc/PhoenixSubWindow';
+import { PhoenixMover } from '@phoenix-ui/wc/PhoenixMover';
 
 
 // 窗口配置接口
@@ -24,13 +24,13 @@ interface WindowState {
   isMaximized: boolean;
 }
 
-export class PhoenixWindowManagerCmp extends HTMLElement {
-  private windows: PhoenixSubWindowCmp[] = [];
+export class PhoenixWindowManager extends HTMLElement {
+  private windows: PhoenixSubWindow[] = [];
   private windowStates: Map<string, WindowState> = new Map();
   private lastOpenedWindows: WindowConfig[] = [];
   private maxZIndex: number = 0;
   private readonly Z_INDEX_THRESHOLD = 99999;
-  private sharedMover: PhoenixMoverCmp;
+  private sharedMover: PhoenixMover;
   private toolButtons: HTMLElement;
   private lastArrangement: 'cascade' | 'tile' | null = null;
 
@@ -193,11 +193,11 @@ phoenix-window-manager {
 
     // 创建样式
     const style = document.createElement('style');
-    style.textContent = PhoenixWindowManagerCmp.STYLES;
+    style.textContent = PhoenixWindowManager.STYLES;
     this.appendChild(style);
     
     // 创建共享的 phoenix-mover
-    this.sharedMover = new PhoenixMoverCmp();
+    this.sharedMover = new PhoenixMover();
     this.appendChild(this.sharedMover);
     
     // 添加工具按钮容器
@@ -276,7 +276,6 @@ phoenix-window-manager {
 
   // 添加新窗口
   addWindow(config: WindowConfig) {
-    console.log('addWindow', config);
     // 检查是否已存在相同URL的窗口
     const existingWindow = this.windows.find(w => w.getAttribute('data-url') === config.url);
     
@@ -302,25 +301,25 @@ phoenix-window-manager {
     };
 
     // 创建新窗口
-    const windowElement = new PhoenixSubWindowCmp();
-    windowElement.setAttribute('id', config.id);
-    windowElement.setAttribute('title', config.title);
-    windowElement.setAttribute('url', config.url);
-    windowElement.setAttribute('data-url', config.url);
-    windowElement.setAttribute('position', JSON.stringify(position));
-    windowElement.setAttribute('size', JSON.stringify(size));
-    windowElement.setAttribute('z-index', (++this.maxZIndex).toString());
+    const subWindow = new PhoenixSubWindow();
+    subWindow.setAttribute('id', config.id);
+    subWindow.setAttribute('title', config.title);
+    subWindow.setAttribute('url', config.url);
+    subWindow.setAttribute('data-url', config.url);
+    subWindow.setAttribute('position', JSON.stringify(position));
+    subWindow.setAttribute('size', JSON.stringify(size));
+    subWindow.setAttribute('z-index', (++this.maxZIndex).toString());
 
     // 添加事件监听器
-    windowElement.addEventListener('focus', () => this.activateWindow(config.id));
-    windowElement.addEventListener('close', () => this.closeWindow(config.id));
-    windowElement.addEventListener('minimize', () => {
+    subWindow.addEventListener('focus', () => this.activateWindow(config.id));
+    subWindow.addEventListener('close', () => this.closeWindow(config.id));
+    subWindow.addEventListener('minimize', () => {
       // 处理最小化事件
     });
-    windowElement.addEventListener('maximize', () => {
+    subWindow.addEventListener('maximize', () => {
       // 处理最大化事件
     });
-    windowElement.addEventListener('movestart', (e: Event) => {
+    subWindow.addEventListener('movestart', (e: Event) => {
       const customEvent = e as CustomEvent;
       // 设置当前目标并初始化移动
       this.sharedMover.setAttribute('target', `#${config.id}`);
@@ -331,8 +330,8 @@ phoenix-window-manager {
     });
 
     // 修改添加到容器的方式
-    this.appendChild(windowElement);
-    this.windows.push(windowElement);
+    this.appendChild(subWindow);
+    this.windows.push(subWindow);
     
     // 记录到最近打开的窗口
     this.lastOpenedWindows = [
@@ -498,4 +497,4 @@ phoenix-window-manager {
 }
 
 // 注册自定义元素
-customElements.define('phoenix-window-manager', PhoenixWindowManagerCmp); 
+customElements.define('phoenix-window-manager', PhoenixWindowManager); 

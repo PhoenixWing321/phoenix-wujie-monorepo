@@ -1,9 +1,9 @@
 import './style.css';
-import { PhoenixWindowManagerCmp } from '@phoenix-ui/cmp/PhoenixWindowManagerCmp';
-import '@phoenix-ui/cmp/PhoenixSubWindowCmp';  // 确保 PhoenixSubWindowCmp 被注册
-import '@phoenix-ui/cmp/PhoenixResizerCmp';  // 直接导入组件文件，确保组件被注册
+import { PhoenixWindowManager } from '@phoenix-ui/wc/PhoenixWindowManager';
+import '@phoenix-ui/wc/PhoenixSubWindow';  // 确保 PhoenixSubWindow 被注册
+import '@phoenix-ui/wc/PhoenixResizer';  // 直接导入组件文件，确保组件被注册
 
-// 定义 PhoenixResizerCmp 的类型
+// 定义 PhoenixResizer 的类型
 declare global {
   interface HTMLElementTagNameMap {
     'phoenix-resizer': any;  // 暂时使用 any 类型，因为组件已经在文件中注册
@@ -82,7 +82,7 @@ const toggleToolbar = () => {
 };
 
 // 创建MDI容器实例
-const manager = new PhoenixWindowManagerCmp();
+const manager = new PhoenixWindowManager();
 document.getElementById('windowManager')?.appendChild(manager);
 
 // 添加窗口功能

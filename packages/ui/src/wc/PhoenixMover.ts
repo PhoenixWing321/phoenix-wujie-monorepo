@@ -13,7 +13,7 @@ interface Rect {
   height: number;
 }
 
-export class PhoenixMoverCmp extends HTMLElement {
+export class PhoenixMover extends HTMLElement {
   private target: HTMLElement | null = null; //被拖拽的元素
   private overlay: HTMLElement | null = null; //被覆盖的元素
   private isDragging: boolean = false; //是否正在拖拽
@@ -150,7 +150,7 @@ export class PhoenixMoverCmp extends HTMLElement {
 
     // 创建样式
     const style = document.createElement('style');
-    style.textContent = PhoenixMoverCmp.STYLES;
+    style.textContent = PhoenixMover.STYLES;
     shadow.appendChild(style);
 
     // 创建指示器
@@ -485,4 +485,4 @@ export class PhoenixMoverCmp extends HTMLElement {
   }
 }
 // 注册自定义元素
-customElements.define('phoenix-mover', PhoenixMoverCmp);
+customElements.define('phoenix-mover', PhoenixMover);

@@ -1,10 +1,10 @@
-import { PhoenixMoverCmp } from '@phoenix-ui/cmp/PhoenixMoverCmp';
+import { PhoenixMover } from '@phoenix-ui/wc/PhoenixMover';
 
 // 获取覆盖元素
 const overlay = document.getElementById('window-container');
 
 // 创建共享的 phoenix-mover
-const sharedMover: PhoenixMoverCmp = new PhoenixMoverCmp(overlay);
+const sharedMover: PhoenixMover = new PhoenixMover(overlay);
 document.body.appendChild(sharedMover);
 
 let zMax = 1;  // 添加全局z-index计数器
