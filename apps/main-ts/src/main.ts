@@ -1,7 +1,9 @@
 import './style.css';
 import { PhoenixWindowManager } from '@phoenix-ui/wc/PhoenixWindowManager';
-import '@phoenix-ui/wc/PhoenixSubWindow';  // 确保 PhoenixSubWindow 被注册
-import '@phoenix-ui/wc/PhoenixResizer';  // 直接导入组件文件，确保组件被注册
+import { PhoenixResizer } from '@phoenix-ui/wc/PhoenixResizer';
+
+ // 直接导入组件文件，确保组件被注册，用于html中使用
+import '@phoenix-ui/wc/PhoenixResizer'; 
 import '@phoenix-ui/wc/PhoenixButton';
 
 // 定义 PhoenixResizer 的类型
@@ -43,7 +45,7 @@ const MAX_WIDTH = 600;
 const DEFAULT_WIDTH = 200;
 
 // 获取 Resizer 实例
-const toolbarResizer = document.querySelector('phoenix-resizer') as any;
+const toolbarResizer = document.querySelector('phoenix-resizer') as PhoenixResizer;
 if (toolbarResizer) {
   toolbarResizer.setMinWidth(MIN_WIDTH);
   toolbarResizer.setMaxWidth(MAX_WIDTH);

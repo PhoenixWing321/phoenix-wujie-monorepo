@@ -1,8 +1,11 @@
+// 导出类型
+export type PhoenixButtonType = 'primary' | 'secondary' | 'default';
+
 export class PhoenixButton extends HTMLElement {
   private button: HTMLButtonElement;
   private onClick?: () => void;
   private disabled: boolean = false;
-  private type: 'primary' | 'secondary' | 'default' = 'default';
+  private type: PhoenixButtonType = 'default';
 
   // 提取常量
   private static readonly STYLES = `
@@ -104,7 +107,7 @@ export class PhoenixButton extends HTMLElement {
     if (name === 'disabled') {
       this.disabled = newValue !== null;
     } else if (name === 'type') {
-      this.type = (newValue as 'primary' | 'secondary' | 'default') || 'default';
+      this.type = (newValue as PhoenixButtonType) || 'default';
     }
 
     this.updateButton();
@@ -138,7 +141,7 @@ export class PhoenixButton extends HTMLElement {
   }
 
   // 设置按钮类型
-  setType(type: 'primary' | 'secondary' | 'default') {
+  setType(type: PhoenixButtonType) {
     this.type = type;
     this.setAttribute('type', type);
     this.updateButton();
