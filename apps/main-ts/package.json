@@ -9,7 +9,8 @@
     "preview": "vite preview"
   },
   "dependencies": {
-    "@phoenix-wujie-monorepo/ui": "workspace:*"
+    "@phoenix-wujie-monorepo/ui": "workspace:*",
+    "lit": "^3.2.1"
   },
   "devDependencies": {
     "@vitejs/plugin-vue": "^5.2.3",

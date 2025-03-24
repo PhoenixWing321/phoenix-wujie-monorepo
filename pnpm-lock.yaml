@@ -8,6 +8,9 @@ importers:
 
   .:
     dependencies:
+      lit:
+        specifier: ^3.2.1
+        version: 3.2.1
       vite:
         specifier: ^6.2.2
         version: 6.2.2(@types/node@20.17.24)
@@ -99,6 +102,9 @@ importers:
       '@phoenix-wujie-monorepo/ui':
         specifier: workspace:*
         version: link:../../packages/ui
+      lit:
+        specifier: ^3.2.1
+        version: 3.2.1
     devDependencies:
       '@vitejs/plugin-vue':
         specifier: ^5.2.3

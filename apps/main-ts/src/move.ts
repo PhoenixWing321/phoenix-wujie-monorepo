@@ -1,5 +1,7 @@
 import { PhoenixMover } from '@phoenix-ui/wc/PhoenixMover';
 
+import '@phoenix-ui/wc/PhoenixButton';
+
 // 获取覆盖元素
 const overlay = document.getElementById('window-container');
 

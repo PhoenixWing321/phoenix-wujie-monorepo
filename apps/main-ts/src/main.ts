@@ -2,6 +2,7 @@ import './style.css';
 import { PhoenixWindowManager } from '@phoenix-ui/wc/PhoenixWindowManager';
 import '@phoenix-ui/wc/PhoenixSubWindow';  // 确保 PhoenixSubWindow 被注册
 import '@phoenix-ui/wc/PhoenixResizer';  // 直接导入组件文件，确保组件被注册
+import '@phoenix-ui/wc/PhoenixButton';
 
 // 定义 PhoenixResizer 的类型
 declare global {
@@ -21,10 +22,10 @@ document.querySelector<HTMLDivElement>('#app')!.innerHTML = `
           </button>
         </div>
         <div class="tool-buttons">
-          <button id="addWindow" class="tool-button">添加窗口</button>
-          <button id="clearWindows" class="tool-button">清除所有</button>
-          <button id="restoreWindows" class="tool-button">恢复窗口</button>
-          <button id="test-mover" class="tool-button">测试拖拽</button>
+          <phoenix-button type="primary" id="addWindow">添加窗口</phoenix-button >
+          <phoenix-button type="primary" id="clearWindows">清除所有</phoenix-button >
+          <phoenix-button type="primary" id="restoreWindows">恢复窗口</phoenix-button >
+          <phoenix-button type="primary" id="test-mover">测试拖拽</phoenix-button >
         </div>
       </div>
     </div>

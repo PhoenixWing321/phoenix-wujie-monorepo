@@ -18,6 +18,8 @@
     "declarationDir": "dist",
     "emitDeclarationOnly": true,
     "baseUrl": ".",
+    "experimentalDecorators": true,
+    "emitDecoratorMetadata": true,
     "paths": {
       "@phoenix-ui/*": ["src/*"],
       "@phoenix-ui": ["src"]
